@@ -1,0 +1,136 @@
+openapi: 3.0.3
+info:
+  title: Taiga Projects API
+  description: >-
+    OpenAPI spec untuk Taiga project management API
+    (host: projects.digitaltelkom.id)
+  version: "1.0.0"
+  contact:
+    name: Taiga API
+servers:
+  - url: https://projects.digitaltelkom.id/api/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /projects:
+    get:
+      operationId: listProjects
+      summary: List semua project
+      description: Mengembalikan daftar project sesuai akses user token.
+      parameters:
+        - name: member
+          in: query
+          description: Filter project berdasarkan ID member/user (misal 630)
+          required: false
+          schema:
+            type: integer
+            example: 630
+        - name: slug
+          in: query
+          description: Filter berdasarkan slug project
+          required: false
+          schema:
+            type: string
+        - name: name
+          in: query
+          description: Filter berdasarkan nama project (partial match)
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Daftar project berhasil didapat
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+        "401":
+          description: Token tidak valid / tidak ada
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Token tidak punya izin
+          $ref: "#/components/responses/Forbidden"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token (JWT) dari Taiga.
+
+  responses:
+    Unauthorized:
+      description: Autentikasi gagal / token tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Token valid tapi tidak punya akses
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Project:
+      type: object
+      description: Representasi satu project di Taiga
+      properties:
+        id:
+          type: integer
+          description: ID unik project
+          example: 2
+        name:
+          type: string
+          description: Nama project
+          example: "MyTens GoBeyond"
+        slug:
+          type: string
+          description: Slug project (identitas URL)
+          example: "my-tens-go-beyond"
+        description:
+          type: string
+          description: Deskripsi project
+          example: "Project MyTens"
+        created_date:
+          type: string
+          format: date-time
+          description: Tanggal project dibuat
+          example: "2024-01-15T10:00:00Z"
+        modified_date:
+          type: string
+          format: date-time
+          example: "2024-06-01T12:30:00Z"
+        owner:
+          type: integer
+          description: ID user pemilik project
+          example: 630
+        members:
+          type: array
+          description: Daftar ID member project
+          items:
+            type: integer
+            example: 630
+        is_private:
+          type: boolean
+          description: Apakah project privat
+          example: true
+        tags:
+          type: array
+          items:
+            type: string
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Pesan error
+          example: "Authentication credentials were not provided."
