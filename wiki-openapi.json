@@ -1,0 +1,835 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Outline Wiki API",
+    "description": "API wiki Outline untuk MCP Gateway: baca/tulis dokumen, pencarian, dan pengelolaan collection.\n\nOutline memakai gaya RPC, bukan REST. Semua endpoint adalah `POST /api/:method` dengan body JSON — tidak ada path per resource dan tidak ada GET/PUT/DELETE. Spec ini diturunkan dari OpenAPI resmi Outline (https://github.com/outline/openapi), dipangkas ke 21 method yang dipakai gateway.\n\nTarget instance: Outline self-hosted di https://wiki.digitaltelkom.id, base URL API `https://wiki.digitaltelkom.id/api` (sudah diset di `servers`).\n\n## Bentuk response\n\nPayload tidak pernah ada di root. Setiap response sukses dibungkus jadi `{ \"data\": ..., \"status\": 200, \"ok\": true }`. Endpoint list menambahkan `pagination`; sebagian besar endpoint menambahkan `policies`, yaitu hak akses pemilik API key atas tiap objek di `data`. Satu pengecualian: `documents.delete` mengembalikan `success`, bukan `data`.\n\n## Status verifikasi\n\nKetelitian spec ini bertingkat, jadi perlu dibaca sesuai tingkatannya.\n\n**Diuji langsung ke instance.** Ke-21 method dipastikan ada lewat probe tanpa auth — method yang ada membalas 401/400, yang tidak ada membalas 404. Kunci `ok` dan `status` terlihat langsung pada response `auth.config` dan pada response error. Dua endpoint memvalidasi sebelum auth sehingga kontraknya terbaca persis: `documents.info` membalas `one of id or shareId is required`, dan `documents.export` membalas `id: Must be a valid UUID or slug`. Keduanya sudah tercermin di spec.\n\nSeluruh endpoint baca sudah dipanggil memakai API key dan schema-nya disusun dari response asli, bukan dari spec resmi: `documents.info`, `documents.list`, `documents.search`, `documents.export`, `collections.list`, `collections.info`, `collections.documents`, `comments.list`, `users.info`, `users.list`. `policies` dan `pagination` terbukti ada, dan `Pagination` ternyata membawa `total` serta `nextPath` yang tidak tercantum di spec resmi.\n\nBeberapa koreksi datang dari pengujian ini. `Document.emoji`, `Document.archived`, dan `Collection.documentCount` TIDAK dikembalikan instance dan sudah dibuang dari spec. Sebaliknya instance mengembalikan `Document.insightsEnabled`, `isCollectionDeleted`, `sourceMetadata`, `template`, serta `User.language`, `preferences`, `notificationSettings` yang tidak ada di spec resmi.\n\nEndpoint tulis juga sudah diuji, memakai satu dokumen draft yang dibuat lalu dibuang: `documents.create`, `documents.update` (termasuk flag `append`), `documents.move`, `documents.archive`, `documents.delete`, `comments.create`, `attachments.create`, `attachments.delete`. `append` ternyata MASIH berfungsi meski sudah hilang dari spec resmi. `attachments.create` di sini hanya mengembalikan `uploadUrl` + `form` tanpa `mode`, `maxUploadSize`, `url`, maupun `headers`.\n\nTiga larangan yang hanya muncul saat dijalankan, semuanya membalas 403 dan tidak terbaca dari spec resmi mana pun: draft tidak bisa diarsipkan, `permanent: true` pada documents.delete butuh hak admin, dan izin `documents.move` dicek pada collection tujuan bukan pada dokumennya. Periksa `policies[].abilities` lebih dulu untuk menghindari ketiganya.\n\nSatu bug instance ikut ketemu: `documents.list` dengan `statusFilter` yang memuat `draft` selalu membalas 500 `internal_error`. Nilai `published` dan `archived` normal, dan `documents.search` menerima `draft` tanpa masalah — jadi pakai itu sebagai jalan pintas. Detailnya ada di deskripsi parameternya.\n\n`collections.create`, `collections.update`, dan `attachments.redirect` menyusul diuji belakangan. Collection uji dibuat tanpa `permission` sehingga privat, dan `attachments.redirect` diuji dengan berkas yang sungguh diunggah — alur create → upload → redirect terbukti utuh sampai isi berkas terbaca kembali. Ke-21 method di spec ini kini sudah dieksekusi langsung, bukan disalin dari dokumen.\n\nInstance ini tertinggal dari Outline terbaru: 28 method di spec resmi membalas 404 di sini, antara lain seluruh `templates.*`, `oauthClients.*`, `dataAttributes.*`, `accessRequests.*`, ditambah `documents.insights`, `documents.answerQuestion`, dan `collections.duplicate`. Karena itu `Document.dataAttributes` dan `Collection.templateManagement` sengaja tidak disertakan. Field `data` berbentuk ProseMirror JSON juga tidak ada — untuk membaca isi dokumen, pakai `text`.\n",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "https://wiki.digitaltelkom.id/api", "description": "Telkom Digital Wiki — Outline self-hosted" }
+  ],
+  "tags": [
+    { "name": "Documents", "description": "Manajemen dokumen wiki" },
+    { "name": "Collections", "description": "Manajemen koleksi/folder dokumen" },
+    { "name": "Comments", "description": "Komentar pada dokumen" },
+    { "name": "Attachments", "description": "Upload dan akses lampiran/gambar dokumen" },
+    { "name": "Users", "description": "Informasi user workspace" }
+  ],
+  "paths": {
+    "/documents.info": {
+      "post": {
+        "summary": "Dapatkan detail dokumen",
+        "description": "Mengambil detail sebuah dokumen berdasarkan id (UUID) atau urlId.",
+        "operationId": "documentsInfo",
+        "tags": ["Documents"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Isi salah satu: `id` atau `shareId`. Kalau dua-duanya kosong, instance membalas 400 `one of id or shareId is required`.",
+                "anyOf": [{ "required": ["id"] }, { "required": ["shareId"] }],
+                "properties": {
+                  "id": { "type": "string", "description": "UUID atau urlId dokumen", "example": "outline-api-NTpezNwhUP" },
+                  "shareId": { "type": "string", "format": "uuid", "description": "ID share publik. Bisa menggantikan `id` untuk membaca dokumen yang dibagikan tanpa login." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Detail dokumen",
+            "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Document" }, "policies": { "$ref": "#/components/schemas/PolicyList" } } }] } } }
+          },
+          "401": { "description": "Unauthenticated" },
+          "404": { "description": "Dokumen tidak ditemukan" }
+        }
+      }
+    },
+    "/documents.list": {
+      "post": {
+        "summary": "Dapatkan daftar dokumen",
+        "operationId": "documentsList",
+        "tags": ["Documents"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "collectionId": { "type": "string", "format": "uuid", "description": "Filter berdasarkan collection" },
+                  "userId": { "type": "string", "format": "uuid", "description": "Filter berdasarkan pembuat dokumen" },
+                  "parentDocumentId": { "type": "string", "format": "uuid", "description": "Hanya dokumen anak langsung dari dokumen ini" },
+                  "backlinkDocumentId": { "type": "string", "format": "uuid", "description": "Hanya dokumen yang menaut ke dokumen ini" },
+                  "statusFilter": {
+                    "type": "array",
+                    "items": { "type": "string", "enum": ["published", "archived", "draft"] },
+                    "description": "Default hanya dokumen published. RUSAK DI INSTANCE INI: menyertakan nilai `draft` selalu membalas 500 `internal_error`, baik sendirian, digabung `published`, maupun dipadukan `collectionId`. Nilai `published` dan `archived` normal. Sudah dikonfirmasi berulang. Untuk mencari draft, pakai documents.search dengan statusFilter yang sama — di sana berfungsi."
+                  },
+                  "offset": { "type": "integer", "default": 0 },
+                  "limit": { "type": "integer", "default": 25 },
+                  "sort": { "type": "string", "example": "updatedAt", "description": "Nama field untuk pengurutan" },
+                  "direction": { "type": "string", "enum": ["ASC", "DESC"], "default": "DESC" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Daftar dokumen",
+            "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Document" } }, "policies": { "$ref": "#/components/schemas/PolicyList" }, "pagination": { "$ref": "#/components/schemas/Pagination" } } }] } } }
+          }
+        }
+      }
+    },
+    "/documents.search": {
+      "post": {
+        "summary": "Cari dokumen",
+        "description": "Full-text search terhadap seluruh dokumen yang bisa diakses user.",
+        "operationId": "documentsSearch",
+        "tags": ["Documents"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string", "example": "SOP incident response" },
+                  "collectionId": { "type": "string", "format": "uuid" },
+                  "documentId": { "type": "string", "format": "uuid", "description": "Batasi pencarian ke satu dokumen beserta anak-anaknya" },
+                  "userId": { "type": "string", "format": "uuid" },
+                  "dateFilter": { "type": "string", "enum": ["day", "week", "month", "year"] },
+                  "statusFilter": {
+                    "type": "array",
+                    "items": { "type": "string", "enum": ["published", "archived", "draft"] },
+                    "description": "Default hanya dokumen published. Di endpoint ini nilai `draft` AMAN — berbeda dengan documents.list yang membalas 500 untuk nilai yang sama."
+                  },
+                  "snippetMinWords": { "type": "integer", "description": "Panjang minimum potongan `context` pada hasil" },
+                  "snippetMaxWords": { "type": "integer", "description": "Panjang maksimum potongan `context` pada hasil" },
+                  "offset": { "type": "integer", "default": 0 },
+                  "limit": { "type": "integer", "default": 25 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hasil pencarian",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "ranking": { "type": "number", "description": "Skor relevansi hasil pencarian" },
+                              "context": { "type": "string", "description": "Potongan teks di sekitar hasil pencarian" },
+                              "document": { "$ref": "#/components/schemas/Document" }
+                            }
+                          }
+                        },
+                        "policies": { "$ref": "#/components/schemas/PolicyList" },
+                        "pagination": { "$ref": "#/components/schemas/Pagination" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents.create": {
+      "post": {
+        "summary": "Buat dokumen baru",
+        "description": "Membuat dokumen baru di root collection atau sebagai child dari parentDocumentId.",
+        "operationId": "documentsCreate",
+        "tags": ["Documents"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DocumentCreateRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Dokumen berhasil dibuat",
+            "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Document" }, "policies": { "$ref": "#/components/schemas/PolicyList" } } }] } } }
+          },
+          "400": { "description": "Request tidak valid" }
+        }
+      }
+    },
+    "/documents.update": {
+      "post": {
+        "summary": "Update dokumen",
+        "description": "Mengubah judul/isi dokumen yang sudah ada. Bisa juga dipakai untuk publish draft.",
+        "operationId": "documentsUpdate",
+        "tags": ["Documents"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DocumentUpdateRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Dokumen berhasil diupdate",
+            "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Document" }, "policies": { "$ref": "#/components/schemas/PolicyList" } } }] } } }
+          },
+          "404": { "description": "Dokumen tidak ditemukan" }
+        }
+      }
+    },
+    "/documents.move": {
+      "post": {
+        "summary": "Pindahkan dokumen",
+        "description": "Memindahkan dokumen ke collection lain dan/atau di bawah parent document lain.\n\nIzin dicek pada collection TUJUAN, bukan pada dokumennya. Memindahkan ke collection yang `abilities.createDocument`-nya false akan ditolak 403 `Authorization error` meski `abilities.move` pada dokumen bernilai true. Sudah dikonfirmasi lewat pengujian.\n\nMemindahkan draft tidak mempublikasikannya — `publishedAt` tetap null.",
+        "operationId": "documentsMove",
+        "tags": ["Documents"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                  "id": { "type": "string", "description": "UUID atau urlId dokumen", "example": "outline-api-NTpezNwhUP" },
+                  "collectionId": { "type": "string", "format": "uuid" },
+                  "parentDocumentId": { "type": "string", "format": "uuid", "nullable": true },
+                  "index": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dokumen berhasil dipindahkan. `data` berisi seluruh dokumen dan collection yang ikut berubah akibat perpindahan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "documents": { "type": "array", "items": { "$ref": "#/components/schemas/Document" } },
+                            "collections": { "type": "array", "items": { "$ref": "#/components/schemas/Collection" } }
+                          }
+                        },
+                        "policies": { "$ref": "#/components/schemas/PolicyList" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents.archive": {
+      "post": {
+        "summary": "Arsipkan dokumen",
+        "description": "Hanya berlaku untuk dokumen yang sudah dipublikasikan. Draft (`publishedAt` null) TIDAK bisa diarsipkan — instance membalas 403 `Authorization error`, dan `policies[].abilities.archive` pada dokumen itu bernilai false. Sudah dikonfirmasi lewat pengujian.\n\nPeriksa `abilities.archive` dari response sebelumnya bila ingin tahu lebih dulu tanpa menabrak 403.",
+        "operationId": "documentsArchive",
+        "tags": ["Documents"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string", "description": "UUID atau urlId dokumen", "example": "outline-api-NTpezNwhUP" } } } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Dokumen berhasil diarsipkan",
+            "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Document" }, "policies": { "$ref": "#/components/schemas/PolicyList" } } }] } } }
+          }
+        }
+      }
+    },
+    "/documents.delete": {
+      "post": {
+        "summary": "Hapus dokumen",
+        "operationId": "documentsDelete",
+        "tags": ["Documents"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                  "id": { "type": "string", "description": "UUID atau urlId dokumen", "example": "outline-api-NTpezNwhUP" },
+                  "permanent": { "type": "boolean", "default": false, "description": "false memindahkan dokumen ke trash — `deletedAt` terisi, dokumen masih terbaca lewat documents.info. true menghapus selamanya, TAPI butuh hak admin: role member ditolak 403 `Authorization error` karena `abilities.permanentDelete` bernilai false. Sudah dikonfirmasi lewat pengujian." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dokumen berhasil dihapus. Endpoint ini mengembalikan `success`, bukan `data`.",
+            "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "success": { "type": "boolean", "example": true } } }] } } }
+          }
+        }
+      }
+    },
+    "/documents.export": {
+      "post": {
+        "summary": "Export dokumen ke Markdown",
+        "operationId": "documentsExport",
+        "tags": ["Documents"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string", "description": "UUID atau urlId dokumen. Nilai di luar dua bentuk itu ditolak instance dengan 400 `id: Must be a valid UUID or slug`.", "example": "outline-api-NTpezNwhUP" } } } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Isi dokumen dalam format Markdown",
+            "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "string", "description": "Konten markdown dokumen" } } }] } } }
+          }
+        }
+      }
+    },
+    "/collections.list": {
+      "post": {
+        "summary": "Dapatkan daftar collection",
+        "operationId": "collectionsList",
+        "tags": ["Collections"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "offset": { "type": "integer", "default": 0 },
+                  "limit": { "type": "integer", "default": 25 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Daftar collection",
+            "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Collection" } }, "policies": { "$ref": "#/components/schemas/PolicyList" }, "pagination": { "$ref": "#/components/schemas/Pagination" } } }] } } }
+          }
+        }
+      }
+    },
+    "/collections.info": {
+      "post": {
+        "summary": "Dapatkan detail collection",
+        "operationId": "collectionsInfo",
+        "tags": ["Collections"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string", "format": "uuid" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Detail collection", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Collection" }, "policies": { "$ref": "#/components/schemas/PolicyList" } } }] } } } }
+        }
+      }
+    },
+    "/collections.documents": {
+      "post": {
+        "summary": "Dapatkan struktur dokumen di dalam collection",
+        "description": "Mengembalikan struktur pohon (tree) dokumen di dalam sebuah collection.",
+        "operationId": "collectionsDocuments",
+        "tags": ["Collections"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string", "format": "uuid" } } } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Struktur dokumen dalam collection, berupa pohon rekursif",
+            "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/NavigationNode" } } } }] } } }
+          }
+        }
+      }
+    },
+    "/collections.create": {
+      "post": {
+        "summary": "Buat collection baru",
+        "operationId": "collectionsCreate",
+        "tags": ["Collections"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "example": "Knowledge Base - Engineering" },
+                  "description": { "type": "string" },
+                  "icon": { "type": "string", "description": "Emoji atau nama ikon outline-icons" },
+                  "color": { "type": "string" },
+                  "sharing": { "type": "boolean", "description": "Izinkan share dokumen publik dari collection ini" },
+                  "permission": { "type": "string", "enum": ["read", "read_write"], "nullable": true, "description": "Kosongkan untuk membuat collection PRIVAT — hasilnya `permission: null` dan hanya pembuatnya yang melihat collection itu di sidebar. Sudah dikonfirmasi lewat pengujian. Isi `read` atau `read_write` untuk collection yang terlihat seluruh workspace." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Collection berhasil dibuat", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Collection" }, "policies": { "$ref": "#/components/schemas/PolicyList" } } }] } } } }
+        }
+      }
+    },
+    "/collections.update": {
+      "post": {
+        "summary": "Update collection",
+        "operationId": "collectionsUpdate",
+        "tags": ["Collections"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                  "id": { "type": "string", "format": "uuid" },
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "icon": { "type": "string" },
+                  "color": { "type": "string" },
+                  "sharing": { "type": "boolean" },
+                  "permission": { "type": "string", "enum": ["read", "read_write"], "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Collection berhasil diupdate",
+            "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Collection" }, "policies": { "$ref": "#/components/schemas/PolicyList" } } }] } } }
+          }
+        }
+      }
+    },
+    "/comments.list": {
+      "post": {
+        "summary": "Dapatkan daftar komentar pada dokumen",
+        "operationId": "commentsList",
+        "tags": ["Comments"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["documentId"],
+                "properties": {
+                  "documentId": { "type": "string", "format": "uuid" },
+                  "includeAnchorText": { "type": "boolean", "default": false, "description": "Sertakan `anchorText` pada tiap komentar" },
+                  "offset": { "type": "integer", "default": 0 },
+                  "limit": { "type": "integer", "default": 25 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Daftar komentar", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Comment" } }, "policies": { "$ref": "#/components/schemas/PolicyList" }, "pagination": { "$ref": "#/components/schemas/Pagination" } } }] } } } }
+        }
+      }
+    },
+    "/comments.create": {
+      "post": {
+        "summary": "Tambah komentar pada dokumen",
+        "operationId": "commentsCreate",
+        "tags": ["Comments"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["documentId", "data"],
+                "properties": {
+                  "documentId": { "type": "string", "format": "uuid" },
+                  "parentCommentId": { "type": "string", "format": "uuid", "nullable": true },
+                  "data": { "type": "object", "description": "Isi komentar dalam format ProseMirror JSON" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Komentar berhasil dibuat", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Comment" } } }] } } } }
+        }
+      }
+    },
+    "/attachments.create": {
+      "post": {
+        "summary": "Daftarkan lampiran dan minta kredensial upload",
+        "description": "Endpoint ini TIDAK menerima isi file. Yang dilakukannya adalah membuat record lampiran lalu mengembalikan kredensial upload bertanda tangan ke cloud storage.\n\nAlurnya tiga langkah:\n\n1. Panggil `attachments.create` dengan nama, MIME type, dan ukuran file.\n2. Kirim multipart form POST ke `data.uploadUrl`, sertakan SELURUH pasangan key-value di `data.form` sebagai field form, lalu isi file sebagai field terakhir.\n3. Pakai `data.attachment.url` di dalam markdown dokumen, mis. `![alt](/api/attachments.redirect?id=...)`.\n\nUkuran file wajib akurat karena ikut ditandatangani di dalam `Policy`. Storage membalas **204 tanpa body** bila upload berhasil — jangan menunggu JSON. Seluruh alur ini sudah diuji ujung ke ujung: create, upload, redirect, sampai isi berkas terbaca kembali utuh.\n\nCatatan hasil pengujian: instance ini memakai storage berkompatibel S3 (Aliyun OSS) dan HANYA mengembalikan `uploadUrl` + `form` — jalur multipart POST. Field `mode`, `url`, `headers`, dan `maxUploadSize` yang ada di spec resmi Outline TIDAK dikembalikan di sini, jadi jangan menulis percabangan berdasarkan `data.mode`; nilainya akan undefined. Kredensialnya berumur pendek — `Policy` yang diuji kedaluwarsa satu jam setelah dibuat.",
+        "operationId": "attachmentsCreate",
+        "tags": ["Attachments"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "contentType", "size"],
+                "properties": {
+                  "name": { "type": "string", "description": "Nama berkas", "example": "diagram-arsitektur.png" },
+                  "contentType": { "type": "string", "description": "MIME type berkas", "example": "image/png" },
+                  "size": { "type": "integer", "minimum": 0, "description": "Ukuran berkas dalam byte. Harus persis — nilainya ikut ditandatangani." },
+                  "documentId": { "type": "string", "format": "uuid", "description": "Dokumen yang memiliki lampiran ini, bila ada" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Record lampiran dibuat, kredensial upload menyusul di `data`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "uploadUrl": { "type": "string", "format": "uri", "description": "Tujuan multipart form POST", "example": "https://dpe-wiki-images-private-prod.oss-ap-southeast-5.aliyuncs.com" },
+                            "form": {
+                              "type": "object",
+                              "description": "Field form yang wajib disertakan seluruhnya, termasuk kredensial bertanda tangan. Isinya bergantung backend storage — pada instance ini: `key`, `bucket`, `acl`, `Content-Type`, `Content-Disposition`, `Cache-Control`, `Policy`, `X-Amz-Algorithm`, `X-Amz-Credential`, `X-Amz-Date`, `X-Amz-Signature`. Kirim apa adanya, jangan disaring.",
+                              "additionalProperties": { "type": "string" }
+                            },
+                            "attachment": { "$ref": "#/components/schemas/Attachment" },
+                            "maxUploadSize": { "type": "integer", "description": "Batas ukuran upload instance dalam byte. Ada di spec resmi Outline tapi TIDAK dikembalikan instance ini." },
+                            "mode": { "type": "string", "enum": ["post", "put"], "description": "Ada di spec resmi Outline tapi TIDAK dikembalikan instance ini — selalu undefined. Instance ini hanya memakai jalur `post`." },
+                            "url": { "type": "string", "format": "uri", "description": "Khusus jalur `put`. Tidak dikembalikan instance ini." },
+                            "headers": { "type": "object", "description": "Khusus jalur `put`. Tidak dikembalikan instance ini." }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "description": "Nama, contentType, atau size tidak valid" },
+          "401": { "description": "Unauthenticated" }
+        }
+      }
+    },
+    "/attachments.redirect": {
+      "post": {
+        "summary": "Ambil isi lampiran",
+        "description": "Membalas 302 ke lokasi berkas. Untuk lampiran privat, URL bertanda tangan dibuat sesaat dan berumur pendek.\n\nEndpoint ini juga menerima **GET dengan query string** — `GET /api/attachments.redirect?id=<uuid>` — dan justru bentuk itulah yang Outline pasang di `Attachment.url` untuk disisipkan ke markdown. Keduanya sudah diuji dan sama-sama membalas 302.\n\nJebakan yang sudah dikonfirmasi: kalau memanggil lewat POST lalu mengikuti redirect tanpa mengganti method, storage membalas **405 MethodNotAllowed** karena objeknya hanya melayani GET. Tiga cara aman:\n\n1. Pakai GET sejak awal, biarkan redirect diikuti — cara paling sederhana.\n2. Pakai POST, matikan follow-redirect, baca header `Location`, lalu GET terpisah.\n3. Pakai POST hanya untuk mengambil `Location` bila yang dibutuhkan cuma URL-nya.\n\nURL di `Location` sudah bertanda tangan sendiri, jadi TIDAK perlu — dan sebaiknya tidak — disertai header `Authorization` milik Outline saat diambil.",
+        "operationId": "attachmentsRedirect",
+        "tags": ["Attachments"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string", "format": "uuid", "description": "ID lampiran" } } } } }
+        },
+        "responses": {
+          "302": { "description": "Redirect ke lokasi berkas. URL tujuan ada di header `Location`." },
+          "401": { "description": "Unauthenticated" },
+          "404": { "description": "Lampiran tidak ditemukan" }
+        }
+      }
+    },
+    "/attachments.delete": {
+      "post": {
+        "summary": "Hapus lampiran",
+        "description": "Penghapusan bersifat permanen dan tidak bisa dibatalkan. Tautan ke lampiran ini yang sudah terlanjur ada di dalam dokumen TIDAK ikut dibersihkan, jadi akan menjadi tautan rusak.",
+        "operationId": "attachmentsDelete",
+        "tags": ["Attachments"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string", "format": "uuid", "description": "ID lampiran" } } } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Lampiran terhapus. Endpoint ini mengembalikan `success`, bukan `data`.",
+            "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "success": { "type": "boolean", "example": true } } }] } } }
+          },
+          "401": { "description": "Unauthenticated" },
+          "404": { "description": "Lampiran tidak ditemukan" }
+        }
+      }
+    },
+    "/users.info": {
+      "post": {
+        "summary": "Dapatkan detail user",
+        "description": "Spec resmi Outline menandai `id` wajib. Perilaku tanpa `id` — yang seharusnya mengembalikan pemilik API key — belum diuji di instance ini, jadi kirim `id` eksplisit bila ragu.",
+        "operationId": "usersInfo",
+        "tags": ["Users"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "id": { "type": "string", "format": "uuid", "description": "Kosongkan untuk mengambil pemilik API key — perilaku ini belum diuji di instance" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Detail user", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/User" }, "policies": { "$ref": "#/components/schemas/PolicyList" } } }] } } } }
+        }
+      }
+    },
+    "/users.list": {
+      "post": {
+        "summary": "Dapatkan daftar user workspace",
+        "operationId": "usersList",
+        "tags": ["Users"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "offset": { "type": "integer", "default": 0 }, "limit": { "type": "integer", "default": 25 }, "query": { "type": "string", "description": "Filter berdasarkan nama/email" }, "filter": { "type": "string", "enum": ["all", "invited", "active", "suspended"], "description": "Filter berdasarkan status akun" }, "role": { "type": "string", "enum": ["admin", "member", "viewer", "guest"] } } } } }
+        },
+        "responses": {
+          "200": { "description": "Daftar user", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/User" } }, "policies": { "$ref": "#/components/schemas/PolicyList" }, "pagination": { "$ref": "#/components/schemas/Pagination" } } }] } } } }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key Outline, dibuat lewat Settings > API & Apps di https://wiki.digitaltelkom.id, lalu dikirim sebagai header `Authorization: Bearer <API_KEY>`.\n\nInstance ini memakai key ber-prefix `ol_api_` dan menerapkan scope per key, jadi key yang sah pun bisa ditolak kalau scope-nya tidak mencakup endpoint yang dipanggil. Bedakan tiga pesan 401 berikut saat menelusuri masalah auth — ketiganya sudah dikonfirmasi ke instance:\n\n- `Unable to decode token` — bentuk token salah. Panjang ikut divalidasi, jadi string ber-prefix `ol_api_` pun kena bila panjangnya bukan 45 karakter.\n- `Invalid API key` — bentuk sudah benar, tapi key tidak terdaftar\n- `API key does not have access to this resource` — key sah dan terdaftar, hanya scope-nya kurang\n\nUntuk pemakaian read-only oleh gateway, scope baca sudah cukup."
+      }
+    },
+    "schemas": {
+      "Envelope": {
+        "type": "object",
+        "description": "Pembungkus standar setiap response Outline. Payload selalu ada di dalam `data` — atau `success` khusus untuk endpoint delete — tidak pernah di root. Catatan: `ok` dan `status` terlihat langsung pada response instance, tapi tidak dideklarasikan di spec resmi Outline, jadi sengaja tidak ditandai `required` agar validator ketat tidak menolak response yang sebenarnya sah.",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "status": { "type": "integer", "example": 200 }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "description": "Disertakan pada endpoint yang mengembalikan list.",
+        "properties": {
+          "offset": { "type": "integer", "example": 0 },
+          "limit": { "type": "integer", "example": 25 },
+          "total": { "type": "integer", "description": "Jumlah seluruh record yang cocok, bukan jumlah di halaman ini", "example": 1829 },
+          "nextPath": { "type": "string", "description": "Path siap pakai untuk halaman berikutnya. Kosong bila sudah halaman terakhir.", "example": "/api/documents.list?limit=25&offset=25" }
+        }
+      },
+      "Policy": {
+        "type": "object",
+        "description": "Hak akses user pemilik API key terhadap satu objek di dalam `data`. Periksa `abilities` sebelum memanggil endpoint tulis — lebih murah daripada menabrak 403. Kunci yang diamati pada dokumen: read, update, delete, move, publish, unpublish, archive, unarchive, restore, permanentDelete, comment, share, duplicate, download, star, subscribe, pin, createChildDocument, manageUsers, listRevisions, listViews, updateInsights.",
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "description": "ID objek yang diacu policy ini" },
+          "abilities": {
+            "type": "object",
+            "additionalProperties": { "type": "boolean" },
+            "example": { "read": true, "update": true, "delete": false }
+          }
+        }
+      },
+      "PolicyList": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/Policy" }
+      },
+      "Attachment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "description": "ID lampiran, dipakai oleh attachments.redirect dan attachments.delete. Spec resmi Outline tidak mencantumkan field ini, tapi instance memang mengembalikannya." },
+          "name": { "type": "string", "example": "diagram-arsitektur.png" },
+          "contentType": { "type": "string", "example": "image/png" },
+          "size": { "type": "string", "description": "Ukuran dalam byte, dikembalikan sebagai STRING bukan angka karena nilainya bisa melewati batas integer aman JavaScript. Sudah dikonfirmasi: mengirim size 42 menghasilkan \"42\".", "example": "42" },
+          "url": { "type": "string", "description": "Path relatif ke endpoint redirect, BUKAN URL storage langsung. Inilah yang disisipkan ke markdown, mis. `![alt](/api/attachments.redirect?id=...)`. Bentuknya sudah dikonfirmasi lewat pengujian.", "example": "/api/attachments.redirect?id=269f395b-ce24-419f-ac9d-4a9732a8a310" },
+          "documentId": { "type": "string", "format": "uuid", "nullable": true },
+          "userId": { "type": "string", "format": "uuid", "description": "Pembuat lampiran. Ada di spec resmi Outline tapi TIDAK dikembalikan instance ini." }
+        }
+      },
+      "NavigationNode": {
+        "type": "object",
+        "description": "Node pohon dokumen. Bersarang rekursif lewat `children`.",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "url": { "type": "string" },
+          "children": { "type": "array", "items": { "$ref": "#/components/schemas/NavigationNode" } }
+        }
+      },
+      "Document": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "urlId": { "type": "string" },
+          "title": { "type": "string", "example": "Panduan Onboarding Engineer" },
+          "text": { "type": "string", "description": "Isi dokumen dalam format markdown" },
+          "icon": { "type": "string", "nullable": true, "description": "Emoji atau nama ikon dari paket outline-icons", "example": "📘" },
+          "color": { "type": "string", "nullable": true, "description": "Warna ikon dokumen dalam format hex" },
+          "collectionId": { "type": "string", "format": "uuid" },
+          "parentDocumentId": { "type": "string", "format": "uuid", "nullable": true },
+          "templateId": { "type": "string", "format": "uuid", "nullable": true, "description": "Template asal dokumen ini, jika ada" },
+          "template": { "type": "boolean", "description": "true bila dokumen ini sendiri berperan sebagai template" },
+          "collaboratorIds": { "type": "array", "items": { "type": "string", "format": "uuid" }, "description": "User yang pernah menyunting dokumen" },
+          "createdBy": { "$ref": "#/components/schemas/User" },
+          "updatedBy": { "$ref": "#/components/schemas/User" },
+          "fullWidth": { "type": "boolean", "description": "Dokumen ditampilkan dalam mode lebar penuh" },
+          "tasks": {
+            "type": "object",
+            "description": "Jumlah checklist item di dalam dokumen",
+            "properties": { "completed": { "type": "integer" }, "total": { "type": "integer" } }
+          },
+          "insightsEnabled": { "type": "boolean", "description": "Panel insight aktif untuk dokumen ini" },
+          "isCollectionDeleted": { "type": "boolean", "description": "true bila collection induknya sudah dihapus. Dokumennya masih terbaca lewat API, tapi sudah tidak muncul di sidebar." },
+          "sourceMetadata": {
+            "type": "object",
+            "nullable": true,
+            "description": "Jejak impor. Hanya terisi untuk dokumen hasil impor, null untuk dokumen yang dibuat langsung di Outline.",
+            "properties": {
+              "importedAt": { "type": "string", "format": "date-time" },
+              "fileName": { "type": "string", "example": "panduan-onboarding.md" }
+            }
+          },
+          "archivedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "null berarti dokumen tidak diarsipkan. Ini satu-satunya penanda arsip — tidak ada field boolean `archived`." },
+          "deletedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "publishedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "null berarti dokumen masih draft" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "url": { "type": "string", "description": "Path relatif dokumen, mis. /doc/judul-dokumen-hDYep1TPAM" },
+          "revision": { "type": "integer", "description": "Nomor revisi, naik setiap dokumen disimpan" }
+        }
+      },
+      "DocumentCreateRequest": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": { "type": "string", "example": "Runbook Deployment Service X" },
+          "text": { "type": "string", "description": "Isi dokumen dalam markdown" },
+          "collectionId": { "type": "string", "format": "uuid", "description": "Wajib diisi kecuali parentDocumentId diisi" },
+          "parentDocumentId": { "type": "string", "format": "uuid", "nullable": true },
+          "templateId": { "type": "string", "format": "uuid", "description": "Buat dokumen dari template ini" },
+          "icon": { "type": "string", "description": "Emoji atau nama ikon outline-icons" },
+          "color": { "type": "string", "description": "Warna ikon dalam format hex" },
+          "fullWidth": { "type": "boolean" },
+          "publish": { "type": "boolean", "default": false, "description": "false = dokumen dibuat sebagai draft dan belum terlihat di collection" }
+        }
+      },
+      "DocumentUpdateRequest": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "description": "UUID atau urlId dokumen", "example": "outline-api-NTpezNwhUP" },
+          "title": { "type": "string" },
+          "text": { "type": "string", "description": "Mengganti SELURUH isi dokumen. Untuk menambah di akhir, baca dulu lewat documents.info lalu kirim gabungannya." },
+          "collectionId": { "type": "string", "format": "uuid", "nullable": true, "description": "Pindahkan dokumen ke collection ini" },
+          "icon": { "type": "string", "nullable": true },
+          "color": { "type": "string", "nullable": true, "description": "Warna ikon dalam format hex" },
+          "fullWidth": { "type": "boolean" },
+          "publish": { "type": "boolean", "description": "Set true untuk mem-publish draft" },
+          "append": { "type": "boolean", "deprecated": true, "description": "Bila true, `text` ditambahkan ke akhir dokumen alih-alih menggantikan isi. SUDAH DIUJI dan berfungsi di instance ini — revisi tetap naik satu. Ditandai deprecated karena field ini sudah hilang dari spec Outline terbaru, jadi bisa lenyap saat instance di-upgrade. Untuk kode yang harus tahan upgrade, pakai pola baca-lalu-tulis lewat documents.info." }
+        }
+      },
+      "Collection": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "urlId": { "type": "string", "description": "ID pendek pengganti UUID", "example": "hDYep1TPAM" },
+          "name": { "type": "string", "example": "Engineering Knowledge Base" },
+          "description": { "type": "string", "nullable": true },
+          "icon": { "type": "string", "nullable": true, "description": "Emoji atau nama ikon dari paket outline-icons" },
+          "color": { "type": "string", "nullable": true },
+          "permission": { "type": "string", "enum": ["read", "read_write"], "nullable": true, "description": "null berarti collection privat, hanya untuk anggota yang ditambahkan eksplisit" },
+          "sharing": { "type": "boolean", "default": false, "description": "Share dokumen publik diizinkan di collection ini" },
+          "index": { "type": "string", "nullable": true, "description": "Posisi collection di sidebar. Kunci pengurutan fraksional, bukan angka — nilainya bisa diawali spasi dan HARUS dibandingkan sebagai string.", "example": "             8" },
+          "sort": {
+            "type": "object",
+            "description": "Urutan dokumen di collection. Tidak semua response menghormati ini.",
+            "properties": { "field": { "type": "string" }, "direction": { "type": "string", "enum": ["asc", "desc"] } }
+          },
+          "url": { "type": "string", "description": "Path relatif collection", "example": "/collection/sso-caseflux-ik7xvh8C3J" },
+          "archivedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "archivedBy": { "allOf": [{ "nullable": true }, { "$ref": "#/components/schemas/User" }] },
+          "deletedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Comment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "documentId": { "type": "string", "format": "uuid" },
+          "parentCommentId": { "type": "string", "format": "uuid", "nullable": true },
+          "data": { "type": "object", "description": "Isi komentar dalam format ProseMirror JSON" },
+          "anchorText": { "type": "string", "description": "Teks dokumen yang ditandai komentar ini. Hanya muncul jika request memakai includeAnchorText=true." },
+          "reactions": { "type": "array", "items": { "type": "object" }, "description": "Reaksi emoji pada komentar" },
+          "createdBy": { "$ref": "#/components/schemas/User" },
+          "createdById": { "type": "string", "format": "uuid" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "resolvedBy": { "allOf": [{ "nullable": true }, { "$ref": "#/components/schemas/User" }] },
+          "resolvedById": { "type": "string", "format": "uuid", "nullable": true },
+          "resolvedAt": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "avatarUrl": { "type": "string", "nullable": true },
+          "color": { "type": "string", "description": "Warna avatar fallback saat user tidak punya foto" },
+          "role": { "type": "string", "enum": ["admin", "member", "viewer", "guest"], "example": "member" },
+          "isSuspended": { "type": "boolean" },
+          "language": { "type": "string", "description": "Hanya muncul di users.info, tidak di users.list", "example": "en_US" },
+          "preferences": { "type": "object", "nullable": true, "description": "Preferensi UI. Hanya muncul di users.info, tidak di users.list." },
+          "notificationSettings": { "type": "object", "description": "Hanya muncul di users.info, tidak di users.list", "example": {} },
+          "timezone": { "type": "string", "nullable": true, "example": "Asia/Jakarta" },
+          "lastActiveAt": { "type": "string", "format": "date-time", "nullable": true, "description": "Diperbarui paling sering tiap 5 menit" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "deletedAt": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      }
+    }
+  }
+}
