@@ -1,42 +1,659 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Squash TM REST API",
-    "version": "1.0.0"
+    "title": "Squash TM REST API - Curated Subset with Schemas",
+    "version": "4.1.0",
+    "description": "OpenAPI specification for Campaigns, Folders, Iterations, Projects, Test Cases, Steps, Test Suites, and Test Plan associations with payloads."
   },
   "servers": [
     {
       "url": "https://squash-dev.telkomdigital.id/squash/api/rest/latest"
     }
   ],
+  "components": {
+    "securitySchemes": {
+      "BasicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    },
+    "schemas": {
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "Campaign": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "reference": { "type": "string" }
+        }
+      },
+      "CampaignFolder": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "parentId": { "type": "integer" }
+        }
+      },
+      "Iteration": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "reference": { "type": "string" },
+          "scheduledStartDate": { "type": "string", "format": "date" },
+          "scheduledEndDate": { "type": "string", "format": "date" }
+        }
+      },
+      "TestCase": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "reference": { "type": "string" },
+          "description": { "type": "string" },
+          "importance": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      },
+      "TestCaseFolder": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "parentId": { "type": "integer" }
+        }
+      },
+      "TestStep": {
+        "type": "object",
+        "properties": {
+          "_type": { "type": "string", "example": "action-step" },
+          "action": { "type": "string" },
+          "expectedResult": { "type": "string" }
+        }
+      },
+      "TestSueite": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "IterationTestPlanItem": {
+        "type": "object",
+        "properties": {
+          "_type": { "type": "string", "example": "iteration-test-plan-item" },
+          "test_case_id": { "type": "integer" }
+        }
+      },
+      "TestPlanAssociation": {
+        "type": "object",
+        "properties": {
+          "item_ids": {
+            "type": "array",
+            "items": { "type": "integer" }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "BasicAuth": []
+    }
+  ],
   "paths": {
     "/projects": {
       "get": {
-        "operationId": "listProjects",
-        "summary": "List all Squash TM projects",
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": { "type": "integer" }
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": false,
-            "schema": { "type": "integer" }
-          }
-        ],
+        "summary": "Get all projects",
         "responses": {
-          "200": {
-            "description": "List of projects",
-            "content": {
-              "application/json": {
-                "schema": { "type": "object" }
-              }
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "post": {
+        "summary": "Create project",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Project" }
             }
           }
+        },
+        "responses": {
+          "201": { "description": "Project created" }
+        }
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "summary": "Get project by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/projects/by-name/{name}": {
+      "get": {
+        "summary": "Get project by name",
+        "parameters": [
+          { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/campaigns": {
+      "get": {
+        "summary": "Get all campaigns",
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "post": {
+        "summary": "Create campaign",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Campaign" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Campaign created" }
+        }
+      }
+    },
+    "/campaigns/{id}": {
+      "get": {
+        "summary": "Get campaign",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "patch": {
+        "summary": "Modify campaign",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Campaign" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Campaign modified" }
+        }
+      }
+    },
+    "/campaigns/by-name/{name}": {
+      "get": {
+        "summary": "Get campaigns by name",
+        "parameters": [
+          { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/campaigns/{id}/iterations": {
+      "get": {
+        "summary": "Get iterations of campaign",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/campaign-folders": {
+      "get": {
+        "summary": "Get all campaign folders",
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "post": {
+        "summary": "Create campaign folder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CampaignFolder" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Campaign folder created" }
+        }
+      }
+    },
+    "/campaign-folders/{id}": {
+      "get": {
+        "summary": "Get campaign folder",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "patch": {
+        "summary": "Modify campaign folder",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CampaignFolder" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Campaign folder modified" }
+        }
+      }
+    },
+    "/campaign-folders/tree/{projectId}": {
+      "get": {
+        "summary": "Get campaign folders tree by project",
+        "parameters": [
+          { "name": "projectId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/campaign-folders/{id}/content": {
+      "get": {
+        "summary": "Get campaign folder contents",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/iterations": {
+      "post": {
+        "summary": "Create iteration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Iteration" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Iteration created" }
+        }
+      }
+    },
+    "/iterations/{id}": {
+      "get": {
+        "summary": "Get iteration",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "patch": {
+        "summary": "Modify iteration",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Iteration" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Iteration modified" }
+        }
+      }
+    },
+    "/iterations/by-name/{name}": {
+      "get": {
+        "summary": "Get iteration by name",
+        "parameters": [
+          { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/iterations/{id}/test-suites": {
+      "get": {
+        "summary": "Get test suites of an iteration",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/test-cases": {
+      "get": {
+        "summary": "Get all test cases",
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "post": {
+        "summary": "Create test case",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestCase" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Test case created" }
+        }
+      }
+    },
+    "/test-cases/{id}": {
+      "get": {
+        "summary": "Get test case",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "patch": {
+        "summary": "Modify test case",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestCase" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Test case modified" }
+        }
+      }
+    },
+    "/test-cases/by-reference/{reference}": {
+      "get": {
+        "summary": "Get test case by reference",
+        "parameters": [
+          { "name": "reference", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/test-cases/{id}/steps": {
+      "get": {
+        "summary": "Get steps of test case",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "post": {
+        "summary": "Create test step",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestStep" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Test step created" }
+        }
+      }
+    },
+    "/test-case-folders": {
+      "get": {
+        "summary": "Get all test case folders",
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "post": {
+        "summary": "Create test case folder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestCaseFolder" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Test case folder created" }
+        }
+      }
+    },
+    "/test-case-folders/{id}": {
+      "get": {
+        "summary": "Get test case folder",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "patch": {
+        "summary": "Modify test case folder",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestCaseFolder" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Test case folder modified" }
+        }
+      }
+    },
+    "/test-case-folders/tree/{projectId}": {
+      "get": {
+        "summary": "Get test case folders tree by project",
+        "parameters": [
+          { "name": "projectId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/test-case-folders/{id}/content": {
+      "get": {
+        "summary": "Get test case folder contents",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/action-steps/{id}": {
+      "get": {
+        "summary": "Get action step",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "patch": {
+        "summary": "Modify action step",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestStep" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Action step modified" }
+        }
+      }
+    },
+    "/call-steps/{id}": {
+      "get": {
+        "summary": "Get call step",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "patch": {
+        "summary": "Modify call step",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestStep" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Call step modified" }
+        }
+      }
+    },
+    "/test-suites": {
+      "post": {
+        "summary": "Create test suite",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestSueite" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Test suite created" }
+        }
+      }
+    },
+    "/test-suites/{id}": {
+      "get": {
+        "summary": "Get test suite",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Successful operation" }
+        }
+      },
+      "patch": {
+        "summary": "Modify test suite / Bind test plan items",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestPlanAssociation" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Test suite modified" }
+        }
+      }
+    },
+    "/test-suites/{id}/test-plan": {
+      "post": {
+        "summary": "Add Test Cases / Test Plan Items to Test Suite",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestPlanAssociation" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Test cases added to test suite" }
+        }
+      }
+    },
+    "/test-suites/{id}/test-plan-items": {
+      "post": {
+        "summary": "Add items to test suite",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestPlanAssociation" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Items added to test suite" }
+        }
+      }
+    },
+    "/iteration-test-plan-items": {
+      "post": {
+        "summary": "Create iteration test plan item (Add Test Cases to Iteration)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IterationTestPlanItem" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Iteration test plan item created" }
         }
       }
     }
