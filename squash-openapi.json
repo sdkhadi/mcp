@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Squash TM REST API - Curated Subset with Schemas",
+    "title": "Squash TM REST API - Curated Subset with Sample Payloads",
     "version": "4.1.0",
-    "description": "OpenAPI specification for Campaigns, Folders, Iterations, Projects, Test Cases, Steps, Test Suites, and Test Plan associations with payloads."
+    "description": "OpenAPI specification for Campaigns, Folders, Iterations, Projects, Test Cases, Steps, Test Suites, and Test Plan associations with example payloads."
   },
   "servers": [
     {
@@ -21,9 +21,12 @@
       "Project": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer" },
           "name": { "type": "string" },
           "description": { "type": "string" }
+        },
+        "example": {
+          "name": "Project Alpha",
+          "description": "Sample project for integration testing"
         }
       },
       "Campaign": {
@@ -32,6 +35,11 @@
           "name": { "type": "string" },
           "description": { "type": "string" },
           "reference": { "type": "string" }
+        },
+        "example": {
+          "name": "Regression Cycle 1",
+          "description": "Monthly regression testing campaign",
+          "reference": "REG-01"
         }
       },
       "CampaignFolder": {
@@ -39,6 +47,10 @@
         "properties": {
           "name": { "type": "string" },
           "parentId": { "type": "integer" }
+        },
+        "example": {
+          "name": "Sprint Folders",
+          "parentId": 12
         }
       },
       "Iteration": {
@@ -49,6 +61,13 @@
           "reference": { "type": "string" },
           "scheduledStartDate": { "type": "string", "format": "date" },
           "scheduledEndDate": { "type": "string", "format": "date" }
+        },
+        "example": {
+          "name": "Iteration 1",
+          "description": "First test cycle iteration",
+          "reference": "IT-01",
+          "scheduledStartDate": "2026-06-01",
+          "scheduledEndDate": "2026-06-15"
         }
       },
       "TestCase": {
@@ -59,6 +78,13 @@
           "description": { "type": "string" },
           "importance": { "type": "string" },
           "status": { "type": "string" }
+        },
+        "example": {
+          "name": "Login with valid credentials",
+          "reference": "TC-LOGIN-01",
+          "description": "Verify user can login using correct username and password",
+          "importance": "HIGH",
+          "status": "APPROVED"
         }
       },
       "TestCaseFolder": {
@@ -66,6 +92,10 @@
         "properties": {
           "name": { "type": "string" },
           "parentId": { "type": "integer" }
+        },
+        "example": {
+          "name": "Authentication Tests",
+          "parentId": 5
         }
       },
       "TestStep": {
@@ -74,6 +104,11 @@
           "_type": { "type": "string", "example": "action-step" },
           "action": { "type": "string" },
           "expectedResult": { "type": "string" }
+        },
+        "example": {
+          "_type": "action-step",
+          "action": "Input username and password",
+          "expectedResult": "Dashboard page is shown"
         }
       },
       "TestSueite": {
@@ -81,6 +116,10 @@
         "properties": {
           "name": { "type": "string" },
           "description": { "type": "string" }
+        },
+        "example": {
+          "name": "Smoke Test Suite",
+          "description": "Critical path test cases"
         }
       },
       "IterationTestPlanItem": {
@@ -88,6 +127,10 @@
         "properties": {
           "_type": { "type": "string", "example": "iteration-test-plan-item" },
           "test_case_id": { "type": "integer" }
+        },
+        "example": {
+          "_type": "iteration-test-plan-item",
+          "test_case_id": 90
         }
       },
       "TestPlanAssociation": {
@@ -97,6 +140,9 @@
             "type": "array",
             "items": { "type": "integer" }
           }
+        },
+        "example": {
+          "item_ids": [80, 81, 82]
         }
       }
     }
@@ -217,6 +263,22 @@
         ],
         "responses": {
           "200": { "description": "Successful operation" }
+        }
+      },
+      "post": {
+        "summary": "Create iteration in campaign",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Iteration" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Iteration created in campaign" }
         }
       }
     },
@@ -351,6 +413,24 @@
         ],
         "responses": {
           "200": { "description": "Successful operation" }
+        }
+      }
+    },
+    "/iterations/{id}/test-plan": {
+      "post": {
+        "summary": "Add test case to iteration test plan",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IterationTestPlanItem" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Test case added to iteration test plan" }
         }
       }
     },
