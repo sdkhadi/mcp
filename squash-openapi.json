@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Squash TM REST API - Curated Subset with Sample Payloads",
+    "title": "Squash TM REST API - Curated Subset with Corrected Endpoints",
     "version": "4.1.0",
-    "description": "OpenAPI specification for Campaigns, Folders, Iterations, Projects, Test Cases, Steps, Test Suites, and Test Plan associations with example payloads."
+    "description": "OpenAPI specification for Campaigns, Folders, Iterations, Projects, Test Cases, Steps, Test Suites, and Test Plan associations."
   },
   "servers": [
     {
@@ -111,7 +111,7 @@
           "expectedResult": "Dashboard page is shown"
         }
       },
-      "TestSueite": {
+      "TestSuite": {
         "type": "object",
         "properties": {
           "name": { "type": "string" },
@@ -131,18 +131,6 @@
         "example": {
           "_type": "iteration-test-plan-item",
           "test_case_id": 90
-        }
-      },
-      "TestPlanAssociation": {
-        "type": "object",
-        "properties": {
-          "item_ids": {
-            "type": "array",
-            "items": { "type": "integer" }
-          }
-        },
-        "example": {
-          "item_ids": [80, 81, 82]
         }
       }
     }
@@ -550,33 +538,6 @@
         "responses": {
           "200": { "description": "Successful operation" }
         }
-      },
-      "patch": {
-        "summary": "Modify test case folder",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestCaseFolder" }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Test case folder modified" }
-        }
-      }
-    },
-    "/test-case-folders/tree/{projectId}": {
-      "get": {
-        "summary": "Get test case folders tree by project",
-        "parameters": [
-          { "name": "projectId", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
       }
     },
     "/test-case-folders/{id}/content": {
@@ -650,7 +611,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestSueite" }
+              "schema": { "$ref": "#/components/schemas/TestSuite" }
             }
           }
         },
@@ -670,55 +631,37 @@
         }
       },
       "patch": {
-        "summary": "Modify test suite / Bind test plan items",
+        "summary": "Modify test suite",
         "parameters": [
           { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestPlanAssociation" }
-            }
-          }
-        },
         "responses": {
           "200": { "description": "Test suite modified" }
         }
       }
     },
-    "/test-suites/{id}/test-plan": {
+    "/test-suites/{idTestSuite}/test-plan/{ids}": {
       "post": {
-        "summary": "Add Test Cases / Test Plan Items to Test Suite",
+        "summary": "Attach item to test suite",
+        "description": "Attach one or several test plan item to a test suite with the given id(s).",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestPlanAssociation" }
-            }
+          {
+            "name": "idTestSuite",
+            "in": "path",
+            "required": true,
+            "description": "the id of the test suite",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "ids",
+            "in": "path",
+            "required": true,
+            "description": "the id(s) of the test plan item, separated by comma if multiple",
+            "schema": { "type": "string" }
           }
-        },
-        "responses": {
-          "201": { "description": "Test cases added to test suite" }
-        }
-      }
-    },
-    "/test-suites/{id}/test-plan-items": {
-      "post": {
-        "summary": "Add items to test suite",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestPlanAssociation" }
-            }
-          }
-        },
         "responses": {
-          "201": { "description": "Items added to test suite" }
+          "200": { "description": "Successfully attached. Returns the modified test suite." }
         }
       }
     },
