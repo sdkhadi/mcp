@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Taiga REST API",
-    "description": "API untuk manajemen proyek Taiga (project, user story, task, issue). Dokumen ini berisi request auth, projects, user stories, tasks, dan issues.\n",
-    "version": "1.0.0"
+    "description": "API untuk manajemen proyek Taiga (project, epic, user story, task, issue). Dokumen ini berisi request auth, projects, epics, user stories, tasks, dan issues.",
+    "version": "1.1.0"
   },
   "servers": [
     {
@@ -19,6 +19,10 @@
     {
       "name": "Projects",
       "description": "Manajemen project"
+    },
+    {
+      "name": "Epics",
+      "description": "Manajemen epic (inisiatif besar)"
     },
     {
       "name": "UserStories",
@@ -39,9 +43,7 @@
         "summary": "Login user",
         "description": "Autentikasi user dan mendapatkan auth_token (JWT) untuk digunakan pada request selanjutnya.",
         "operationId": "login",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "required": true,
           "content": {
@@ -63,12 +65,8 @@
               }
             }
           },
-          "400": {
-            "description": "Request tidak valid"
-          },
-          "401": {
-            "description": "Username/password salah"
-          }
+          "400": { "description": "Request tidak valid" },
+          "401": { "description": "Username/password salah" }
         }
       }
     },
@@ -77,23 +75,15 @@
         "summary": "Dapatkan daftar proyek",
         "description": "Mengambil daftar proyek yang diikuti oleh member tertentu.",
         "operationId": "listProjects",
-        "tags": [
-          "Projects"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "tags": ["Projects"],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
             "name": "member",
             "in": "query",
             "description": "Filter berdasarkan ID member/user",
             "required": false,
-            "schema": {
-              "type": "integer"
-            },
+            "schema": { "type": "integer" },
             "example": 3266
           }
         ],
@@ -104,16 +94,185 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Project"
-                  }
+                  "items": { "$ref": "#/components/schemas/Project" }
                 }
               }
             }
           },
-          "401": {
-            "description": "Unauthorized"
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "summary": "Dapatkan detail proyek",
+        "operationId": "getProject",
+        "tags": ["Projects"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil mendapatkan detail proyek",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "404": { "description": "Proyek tidak ditemukan" }
+        }
+      },
+      "patch": {
+        "summary": "Edit proyek",
+        "operationId": "updateProject",
+        "tags": ["Projects"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProjectUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Proyek berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "409": { "description": "Conflict (Versi OCC tidak sesuai)" }
+        }
+      }
+    },
+    "/epics": {
+      "get": {
+        "summary": "Dapatkan daftar epics",
+        "operationId": "listEpics",
+        "tags": ["Epics"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "project",
+            "in": "query",
+            "description": "Filter berdasarkan ID proyek",
+            "required": false,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil mendapatkan daftar epic",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Epic" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Buat epic baru",
+        "operationId": "createEpic",
+        "tags": ["Epics"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EpicCreateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Epic berhasil dibuat",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Epic" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/epics/{id}": {
+      "get": {
+        "summary": "Dapatkan detail epic",
+        "operationId": "getEpic",
+        "tags": ["Epics"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil mendapatkan detail epic",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Epic" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Edit epic",
+        "operationId": "updateEpic",
+        "tags": ["Epics"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EpicUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Epic berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Epic" }
+              }
+            }
+          },
+          "409": { "description": "Conflict (Versi OCC tidak sesuai)" }
         }
       }
     },
@@ -122,23 +281,15 @@
         "summary": "Dapatkan daftar user stories",
         "description": "Mengambil daftar user story dengan berbagai filter (project, tags, status, dsb).",
         "operationId": "listUserStories",
-        "tags": [
-          "UserStories"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "tags": ["UserStories"],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
             "name": "project",
             "in": "query",
             "description": "ID proyek",
             "required": false,
-            "schema": {
-              "type": "integer"
-            },
+            "schema": { "type": "integer" },
             "example": 198
           },
           {
@@ -146,44 +297,28 @@
             "in": "query",
             "description": "Sertakan daftar task ringkas dalam response (1 = ya)",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "enum": [
-                0,
-                1
-              ]
-            }
+            "schema": { "type": "integer", "enum": [0, 1] }
           },
           {
             "name": "include_attachments",
             "in": "query",
             "description": "Sertakan attachment dalam response (1 = ya)",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "enum": [
-                0,
-                1
-              ]
-            }
+            "schema": { "type": "integer", "enum": [0, 1] }
           },
           {
             "name": "status__is_archived",
             "in": "query",
             "description": "Filter status yang belum diarsipkan",
             "required": false,
-            "schema": {
-              "type": "boolean"
-            }
+            "schema": { "type": "boolean" }
           },
           {
             "name": "tags",
             "in": "query",
             "description": "Filter berdasarkan tag (pisahkan dengan + untuk multi kata)",
             "required": false,
-            "schema": {
-              "type": "string"
-            },
+            "schema": { "type": "string" },
             "example": "tracker+funnel"
           }
         ],
@@ -194,36 +329,24 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserStory"
-                  }
+                  "items": { "$ref": "#/components/schemas/UserStory" }
                 }
               }
             }
           },
-          "401": {
-            "description": "Unauthorized"
-          }
+          "401": { "description": "Unauthorized" }
         }
       },
       "post": {
         "summary": "Buat user story baru",
         "operationId": "createUserStory",
-        "tags": [
-          "UserStories"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "tags": ["UserStories"],
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserStoryCreateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/UserStoryCreateRequest" }
             }
           }
         },
@@ -232,18 +355,12 @@
             "description": "User story berhasil dibuat",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserStory"
-                }
+                "schema": { "$ref": "#/components/schemas/UserStory" }
               }
             }
           },
-          "400": {
-            "description": "Request tidak valid"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
+          "400": { "description": "Request tidak valid" },
+          "401": { "description": "Unauthorized" }
         }
       }
     },
@@ -251,36 +368,22 @@
       "get": {
         "summary": "Dapatkan detail user story",
         "operationId": "getUserStory",
-        "tags": [
-          "UserStories"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "tags": ["UserStories"],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "description": "ID user story",
-            "schema": {
-              "type": "integer"
-            },
+            "schema": { "type": "integer" },
             "example": 761189
           },
           {
             "name": "include_attachments",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "enum": [
-                0,
-                1
-              ]
-            }
+            "schema": { "type": "integer", "enum": [0, 1] }
           }
         ],
         "responses": {
@@ -288,15 +391,44 @@
             "description": "Berhasil mendapatkan detail user story",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserStoryDetail"
-                }
+                "schema": { "$ref": "#/components/schemas/UserStoryDetail" }
               }
             }
           },
-          "404": {
-            "description": "User story tidak ditemukan"
+          "404": { "description": "User story tidak ditemukan" }
+        }
+      },
+      "patch": {
+        "summary": "Edit user story",
+        "operationId": "updateUserStory",
+        "tags": ["UserStories"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
           }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserStoryUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User story berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserStory" }
+              }
+            }
+          },
+          "409": { "description": "Conflict (Versi OCC tidak sesuai)" }
         }
       }
     },
@@ -304,22 +436,14 @@
       "get": {
         "summary": "Dapatkan daftar task",
         "operationId": "listTasks",
-        "tags": [
-          "Tasks"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "tags": ["Tasks"],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
             "name": "project",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer"
-            },
+            "schema": { "type": "integer" },
             "example": 198
           },
           {
@@ -327,18 +451,14 @@
             "in": "query",
             "required": false,
             "description": "Filter task berdasarkan ID user story",
-            "schema": {
-              "type": "integer"
-            },
+            "schema": { "type": "integer" },
             "example": 761189
           },
           {
             "name": "order_by",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "string"
-            },
+            "schema": { "type": "string" },
             "example": "us_order"
           }
         ],
@@ -349,36 +469,24 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Task"
-                  }
+                  "items": { "$ref": "#/components/schemas/Task" }
                 }
               }
             }
           },
-          "401": {
-            "description": "Unauthorized"
-          }
+          "401": { "description": "Unauthorized" }
         }
       },
       "post": {
         "summary": "Buat task baru pada user story",
         "operationId": "createTask",
-        "tags": [
-          "Tasks"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "tags": ["Tasks"],
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TaskCreateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/TaskCreateRequest" }
             }
           }
         },
@@ -387,18 +495,12 @@
             "description": "Task berhasil dibuat",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Task"
-                }
+                "schema": { "$ref": "#/components/schemas/Task" }
               }
             }
           },
-          "400": {
-            "description": "Request tidak valid"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
+          "400": { "description": "Request tidak valid" },
+          "401": { "description": "Unauthorized" }
         }
       }
     },
@@ -406,36 +508,22 @@
       "get": {
         "summary": "Dapatkan detail task",
         "operationId": "getTask",
-        "tags": [
-          "Tasks"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "tags": ["Tasks"],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "description": "ID task",
-            "schema": {
-              "type": "integer"
-            },
+            "schema": { "type": "integer" },
             "example": 747578
           },
           {
             "name": "include_attachments",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "enum": [
-                0,
-                1
-              ]
-            }
+            "schema": { "type": "integer", "enum": [0, 1] }
           }
         ],
         "responses": {
@@ -443,15 +531,44 @@
             "description": "Berhasil mendapatkan detail task",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskDetail"
-                }
+                "schema": { "$ref": "#/components/schemas/TaskDetail" }
               }
             }
           },
-          "404": {
-            "description": "Task tidak ditemukan"
+          "404": { "description": "Task tidak ditemukan" }
+        }
+      },
+      "patch": {
+        "summary": "Edit task",
+        "operationId": "updateTask",
+        "tags": ["Tasks"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
           }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TaskUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Task" }
+              }
+            }
+          },
+          "409": { "description": "Conflict (Versi OCC tidak sesuai)" }
         }
       }
     },
@@ -459,22 +576,14 @@
       "get": {
         "summary": "Dapatkan daftar issue",
         "operationId": "listIssues",
-        "tags": [
-          "Issues"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "tags": ["Issues"],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
             "name": "project",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer"
-            },
+            "schema": { "type": "integer" },
             "example": 198
           }
         ],
@@ -485,36 +594,24 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Issue"
-                  }
+                  "items": { "$ref": "#/components/schemas/Issue" }
                 }
               }
             }
           },
-          "401": {
-            "description": "Unauthorized"
-          }
+          "401": { "description": "Unauthorized" }
         }
       },
       "post": {
         "summary": "Buat issue baru",
         "operationId": "createIssue",
-        "tags": [
-          "Issues"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "tags": ["Issues"],
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IssueCreateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/IssueCreateRequest" }
             }
           }
         },
@@ -523,18 +620,72 @@
             "description": "Issue berhasil dibuat",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Issue"
-                }
+                "schema": { "$ref": "#/components/schemas/Issue" }
               }
             }
           },
-          "400": {
-            "description": "Request tidak valid"
-          },
-          "401": {
-            "description": "Unauthorized"
+          "400": { "description": "Request tidak valid" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/issues/{id}": {
+      "get": {
+        "summary": "Dapatkan detail issue",
+        "operationId": "getIssue",
+        "tags": ["Issues"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil mendapatkan detail issue",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Issue" }
+              }
+            }
+          },
+          "404": { "description": "Issue tidak ditemukan" }
+        }
+      },
+      "patch": {
+        "summary": "Edit issue",
+        "operationId": "updateIssue",
+        "tags": ["Issues"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IssueUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Issue berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Issue" }
+              }
+            }
+          },
+          "409": { "description": "Conflict (Versi OCC tidak sesuai)" }
         }
       }
     }
@@ -550,665 +701,195 @@
     "schemas": {
       "LoginRequest": {
         "type": "object",
-        "required": [
-          "username",
-          "password",
-          "type"
-        ],
+        "required": ["username", "password", "type"],
         "properties": {
-          "username": {
-            "type": "string",
-            "example": "955845telkomcoid"
-          },
-          "password": {
-            "type": "string",
-            "format": "password"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "normal"
-            ],
-            "example": "normal"
-          }
+          "username": { "type": "string", "example": "955845telkomcoid" },
+          "password": { "type": "string", "format": "password" },
+          "type": { "type": "string", "enum": ["normal"], "example": "normal" }
         }
       },
       "LoginResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "example": 3266
-          },
-          "username": {
-            "type": "string",
-            "example": "955845telkomcoid"
-          },
-          "full_name": {
-            "type": "string",
-            "example": "Mohammad Rizky Pratama"
-          },
-          "full_name_display": {
-            "type": "string"
-          },
-          "color": {
-            "type": "string",
-            "example": "#d1f190"
-          },
-          "bio": {
-            "type": "string"
-          },
-          "lang": {
-            "type": "string",
-            "nullable": true
-          },
-          "theme": {
-            "type": "string"
-          },
-          "timezone": {
-            "type": "string",
-            "nullable": true
-          },
-          "is_active": {
-            "type": "boolean"
-          },
-          "photo": {
-            "type": "string",
-            "nullable": true
-          },
-          "big_photo": {
-            "type": "string",
-            "nullable": true
-          },
-          "gravatar_id": {
-            "type": "string"
-          },
-          "roles": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "total_private_projects": {
-            "type": "integer"
-          },
-          "total_public_projects": {
-            "type": "integer"
-          },
-          "email": {
-            "type": "string",
-            "format": "email"
-          },
-          "uuid": {
-            "type": "string"
-          },
-          "date_joined": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "read_new_terms": {
-            "type": "boolean"
-          },
-          "accepted_terms": {
-            "type": "boolean"
-          },
-          "max_private_projects": {
-            "type": "integer",
-            "nullable": true
-          },
-          "max_public_projects": {
-            "type": "integer",
-            "nullable": true
-          },
-          "max_memberships_private_projects": {
-            "type": "integer",
-            "nullable": true
-          },
-          "max_memberships_public_projects": {
-            "type": "integer",
-            "nullable": true
-          },
-          "verified_email": {
-            "type": "boolean"
-          },
-          "refresh": {
-            "type": "string",
-            "description": "Refresh token (JWT)"
-          },
-          "auth_token": {
-            "type": "string",
-            "description": "Access token (JWT) yang digunakan sebagai Bearer token"
-          }
+          "id": { "type": "integer", "example": 3266 },
+          "username": { "type": "string", "example": "955845telkomcoid" },
+          "full_name": { "type": "string", "example": "Mohammad Rizky Pratama" },
+          "full_name_display": { "type": "string" },
+          "color": { "type": "string", "example": "#d1f190" },
+          "bio": { "type": "string" },
+          "lang": { "type": "string", "nullable": true },
+          "theme": { "type": "string" },
+          "timezone": { "type": "string", "nullable": true },
+          "is_active": { "type": "boolean" },
+          "photo": { "type": "string", "nullable": true },
+          "big_photo": { "type": "string", "nullable": true },
+          "gravatar_id": { "type": "string" },
+          "roles": { "type": "array", "items": { "type": "string" } },
+          "total_private_projects": { "type": "integer" },
+          "total_public_projects": { "type": "integer" },
+          "email": { "type": "string", "format": "email" },
+          "uuid": { "type": "string" },
+          "date_joined": { "type": "string", "format": "date-time" },
+          "read_new_terms": { "type": "boolean" },
+          "accepted_terms": { "type": "boolean" },
+          "max_private_projects": { "type": "integer", "nullable": true },
+          "max_public_projects": { "type": "integer", "nullable": true },
+          "max_memberships_private_projects": { "type": "integer", "nullable": true },
+          "max_memberships_public_projects": { "type": "integer", "nullable": true },
+          "verified_email": { "type": "boolean" },
+          "refresh": { "type": "string", "description": "Refresh token (JWT)" },
+          "auth_token": { "type": "string", "description": "Access token (JWT) yang digunakan sebagai Bearer token" }
         }
       },
       "UserSummary": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "username": {
-            "type": "string"
-          },
-          "full_name_display": {
-            "type": "string"
-          },
-          "photo": {
-            "type": "string",
-            "nullable": true
-          },
-          "big_photo": {
-            "type": "string",
-            "nullable": true
-          },
-          "gravatar_id": {
-            "type": "string"
-          },
-          "is_active": {
-            "type": "boolean"
-          }
+          "id": { "type": "integer" },
+          "username": { "type": "string" },
+          "full_name_display": { "type": "string" },
+          "photo": { "type": "string", "nullable": true },
+          "big_photo": { "type": "string", "nullable": true },
+          "gravatar_id": { "type": "string" },
+          "is_active": { "type": "boolean" }
         }
       },
       "StatusExtraInfo": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "example": "In Progress"
-          },
-          "color": {
-            "type": "string",
-            "example": "#51A3D3"
-          },
-          "is_closed": {
-            "type": "boolean"
-          }
+          "name": { "type": "string", "example": "In Progress" },
+          "color": { "type": "string", "example": "#51A3D3" },
+          "is_closed": { "type": "boolean" }
         }
       },
       "ProjectExtraInfo": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "logo_small_url": {
-            "type": "string",
-            "nullable": true
-          }
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "logo_small_url": { "type": "string", "nullable": true }
         }
       },
       "Project": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "example": 198
-          },
-          "name": {
-            "type": "string",
-            "example": "[EWZ] EWZ Kanban Backlog Management"
-          },
-          "slug": {
-            "type": "string",
-            "example": "EKBM"
-          },
-          "description": {
-            "type": "string"
-          },
-          "created_date": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "modified_date": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "owner": {
-            "$ref": "#/components/schemas/UserSummary"
-          },
+          "id": { "type": "integer", "example": 198 },
+          "name": { "type": "string", "example": "[EWZ] EWZ Kanban Backlog Management" },
+          "slug": { "type": "string", "example": "EKBM" },
+          "description": { "type": "string" },
+          "created_date": { "type": "string", "format": "date-time" },
+          "modified_date": { "type": "string", "format": "date-time" },
+          "owner": { "$ref": "#/components/schemas/UserSummary" },
           "members": {
             "type": "array",
-            "items": {
-              "type": "integer"
-            },
+            "items": { "type": "integer" },
             "description": "Daftar ID member proyek"
           },
-          "total_milestones": {
-            "type": "integer",
-            "nullable": true
-          },
-          "total_story_points": {
-            "type": "number",
-            "nullable": true
-          },
-          "is_contact_activated": {
-            "type": "boolean"
-          },
-          "is_epics_activated": {
-            "type": "boolean"
-          },
-          "is_backlog_activated": {
-            "type": "boolean"
-          },
-          "is_kanban_activated": {
-            "type": "boolean"
-          },
-          "is_wiki_activated": {
-            "type": "boolean"
-          },
-          "is_issues_activated": {
-            "type": "boolean"
-          },
-          "creation_template": {
-            "type": "integer"
-          },
-          "is_private": {
-            "type": "boolean"
-          },
-          "anon_permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "public_permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "is_featured": {
-            "type": "boolean"
-          },
-          "is_looking_for_people": {
-            "type": "boolean"
-          },
-          "looking_for_people_note": {
-            "type": "string"
-          },
-          "blocked_code": {
-            "type": "string",
-            "nullable": true
-          },
-          "totals_updated_datetime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "total_fans": {
-            "type": "integer"
-          },
-          "total_fans_last_week": {
-            "type": "integer"
-          },
-          "total_fans_last_month": {
-            "type": "integer"
-          },
-          "total_fans_last_year": {
-            "type": "integer"
-          },
-          "total_activity": {
-            "type": "integer"
-          },
-          "total_activity_last_week": {
-            "type": "integer"
-          },
-          "total_activity_last_month": {
-            "type": "integer"
-          },
-          "total_activity_last_year": {
-            "type": "integer"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "tags_colors": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          "default_epic_status": {
-            "type": "integer",
-            "nullable": true
-          },
-          "default_points": {
-            "type": "integer",
-            "nullable": true
-          },
-          "default_us_status": {
-            "type": "integer",
-            "nullable": true
-          },
-          "default_task_status": {
-            "type": "integer",
-            "nullable": true
-          },
-          "default_priority": {
-            "type": "integer",
-            "nullable": true
-          },
-          "default_severity": {
-            "type": "integer",
-            "nullable": true
-          },
-          "default_issue_status": {
-            "type": "integer",
-            "nullable": true
-          },
-          "default_issue_type": {
-            "type": "integer",
-            "nullable": true
-          },
-          "default_swimlane": {
-            "type": "integer",
-            "nullable": true
-          },
-          "my_permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "i_am_owner": {
-            "type": "boolean"
-          },
-          "i_am_admin": {
-            "type": "boolean"
-          },
-          "i_am_member": {
-            "type": "boolean"
-          },
-          "notify_level": {
-            "type": "integer"
-          },
-          "total_closed_milestones": {
-            "type": "integer"
-          },
-          "is_watcher": {
-            "type": "boolean"
-          },
-          "total_watchers": {
-            "type": "integer"
-          },
-          "logo_small_url": {
-            "type": "string",
-            "nullable": true
-          },
-          "logo_big_url": {
-            "type": "string",
-            "nullable": true
-          },
-          "is_fan": {
-            "type": "boolean"
-          },
-          "my_homepage": {
-            "type": "integer"
-          }
+          "total_milestones": { "type": "integer", "nullable": true },
+          "total_story_points": { "type": "number", "nullable": true },
+          "is_contact_activated": { "type": "boolean" },
+          "is_epics_activated": { "type": "boolean" },
+          "is_backlog_activated": { "type": "boolean" },
+          "is_kanban_activated": { "type": "boolean" },
+          "is_wiki_activated": { "type": "boolean" },
+          "is_issues_activated": { "type": "boolean" },
+          "creation_template": { "type": "integer" },
+          "is_private": { "type": "boolean" },
+          "version": { "type": "integer" }
+        }
+      },
+      "ProjectUpdateRequest": {
+        "type": "object",
+        "required": ["version"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "version": { "type": "integer", "description": "Versi saat ini (Wajib untuk OCC)" }
+        }
+      },
+      "Epic": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "ref": { "type": "integer" },
+          "subject": { "type": "string" },
+          "description": { "type": "string" },
+          "color": { "type": "string" },
+          "project": { "type": "integer" },
+          "assigned_to": { "type": "integer", "nullable": true },
+          "user_stories": { "type": "array", "items": { "type": "integer" } },
+          "version": { "type": "integer" },
+          "is_closed": { "type": "boolean" }
+        }
+      },
+      "EpicCreateRequest": {
+        "type": "object",
+        "required": ["project", "subject"],
+        "properties": {
+          "project": { "type": "integer" },
+          "subject": { "type": "string" },
+          "description": { "type": "string" },
+          "color": { "type": "string" },
+          "assigned_to": { "type": "integer" }
+        }
+      },
+      "EpicUpdateRequest": {
+        "type": "object",
+        "required": ["version"],
+        "properties": {
+          "subject": { "type": "string" },
+          "description": { "type": "string" },
+          "color": { "type": "string" },
+          "assigned_to": { "type": "integer" },
+          "version": { "type": "integer", "description": "Versi saat ini (Wajib untuk OCC)" }
         }
       },
       "TaskSummary": {
         "type": "object",
         "description": "Ringkasan task yang tampil di dalam response user story (jika include_tasks=1)",
         "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "ref": {
-            "type": "integer"
-          },
-          "subject": {
-            "type": "string"
-          },
-          "status_id": {
-            "type": "integer"
-          },
-          "is_blocked": {
-            "type": "boolean"
-          },
-          "is_iocaine": {
-            "type": "boolean"
-          },
-          "is_closed": {
-            "type": "boolean"
-          }
+          "id": { "type": "integer" },
+          "ref": { "type": "integer" },
+          "subject": { "type": "string" },
+          "status_id": { "type": "integer" },
+          "is_blocked": { "type": "boolean" },
+          "is_iocaine": { "type": "boolean" },
+          "is_closed": { "type": "boolean" }
         }
       },
       "TagWithColor": {
         "type": "array",
         "description": "Pasangan [nama_tag, warna_tag]",
-        "items": {
-          "type": "string",
-          "nullable": true
-        },
+        "items": { "type": "string", "nullable": true },
         "minItems": 2,
         "maxItems": 2,
-        "example": [
-          "tracker funnel",
-          "#51CFD3"
-        ]
+        "example": ["tracker funnel", "#51CFD3"]
       },
       "UserStory": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "example": 761189
-          },
-          "ref": {
-            "type": "integer",
-            "example": 4745
-          },
-          "subject": {
-            "type": "string",
-            "example": "Upgrade Design Header Tracker Funnel - Opportunity"
-          },
-          "description": {
-            "type": "string"
-          },
-          "description_html": {
-            "type": "string"
-          },
-          "due_date": {
-            "type": "string",
-            "format": "date",
-            "nullable": true
-          },
-          "due_date_reason": {
-            "type": "string"
-          },
-          "due_date_status": {
-            "type": "string",
-            "example": "not_set"
-          },
-          "total_comments": {
-            "type": "integer"
-          },
+          "id": { "type": "integer", "example": 761189 },
+          "ref": { "type": "integer", "example": 4745 },
+          "subject": { "type": "string", "example": "Upgrade Design Header Tracker Funnel - Opportunity" },
+          "description": { "type": "string" },
+          "description_html": { "type": "string" },
+          "due_date": { "type": "string", "format": "date", "nullable": true },
           "tags": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TagWithColor"
-            }
+            "items": { "$ref": "#/components/schemas/TagWithColor" }
           },
-          "attachments": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "status": {
-            "type": "integer"
-          },
-          "status_extra_info": {
-            "$ref": "#/components/schemas/StatusExtraInfo"
-          },
-          "assigned_to": {
-            "type": "integer",
-            "nullable": true
-          },
-          "assigned_to_extra_info": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserSummary"
-              }
-            ],
-            "nullable": true
-          },
-          "owner": {
-            "type": "integer"
-          },
-          "owner_extra_info": {
-            "$ref": "#/components/schemas/UserSummary"
-          },
-          "is_watcher": {
-            "type": "boolean"
-          },
-          "total_watchers": {
-            "type": "integer"
-          },
-          "is_voter": {
-            "type": "boolean"
-          },
-          "total_voters": {
-            "type": "integer"
-          },
-          "project": {
-            "type": "integer"
-          },
-          "project_extra_info": {
-            "$ref": "#/components/schemas/ProjectExtraInfo"
-          },
-          "milestone": {
-            "type": "integer",
-            "nullable": true
-          },
-          "milestone_slug": {
-            "type": "string",
-            "nullable": true
-          },
-          "milestone_name": {
-            "type": "string",
-            "nullable": true
-          },
-          "is_closed": {
-            "type": "boolean"
-          },
-          "points": {
-            "type": "object"
-          },
-          "backlog_order": {
-            "type": "integer"
-          },
-          "sprint_order": {
-            "type": "integer"
-          },
-          "kanban_order": {
-            "type": "integer"
-          },
-          "created_date": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "modified_date": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "finish_date": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "client_requirement": {
-            "type": "boolean"
-          },
-          "team_requirement": {
-            "type": "boolean"
-          },
-          "generated_from_issue": {
-            "type": "integer",
-            "nullable": true
-          },
-          "generated_from_task": {
-            "type": "integer",
-            "nullable": true
-          },
-          "from_task_ref": {
-            "type": "integer",
-            "nullable": true
-          },
-          "external_reference": {
-            "nullable": true
-          },
-          "tribe_gig": {
-            "nullable": true
-          },
-          "version": {
-            "type": "integer"
-          },
-          "watchers": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "is_blocked": {
-            "type": "boolean"
-          },
-          "blocked_note": {
-            "type": "string"
-          },
-          "total_points": {
-            "type": "number",
-            "nullable": true
-          },
-          "comment": {
-            "type": "string"
-          },
-          "origin_issue": {
-            "type": "integer",
-            "nullable": true
-          },
-          "origin_task": {
-            "type": "integer",
-            "nullable": true
-          },
-          "epics": {
-            "nullable": true
-          },
-          "epic_order": {
-            "type": "integer",
-            "nullable": true
-          },
+          "status": { "type": "integer" },
+          "status_extra_info": { "$ref": "#/components/schemas/StatusExtraInfo" },
+          "assigned_to": { "type": "integer", "nullable": true },
+          "assigned_to_extra_info": { "$ref": "#/components/schemas/UserSummary", "nullable": true },
+          "owner": { "type": "integer" },
+          "project": { "type": "integer" },
+          "project_extra_info": { "$ref": "#/components/schemas/ProjectExtraInfo" },
+          "is_closed": { "type": "boolean" },
+          "version": { "type": "integer" },
           "tasks": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TaskSummary"
-            }
-          },
-          "total_attachments": {
-            "type": "integer"
-          },
-          "swimlane": {
-            "type": "integer",
-            "nullable": true
-          },
-          "assigned_users": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "blocked_note_html": {
-            "type": "string"
+            "items": { "$ref": "#/components/schemas/TaskSummary" }
           }
         }
       },
@@ -1216,34 +897,22 @@
         "type": "object",
         "nullable": true,
         "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "ref": {
-            "type": "integer"
-          },
-          "subject": {
-            "type": "string"
-          }
+          "id": { "type": "integer" },
+          "ref": { "type": "integer" },
+          "subject": { "type": "string" }
         }
       },
       "UserStoryDetail": {
         "allOf": [
-          {
-            "$ref": "#/components/schemas/UserStory"
-          },
+          { "$ref": "#/components/schemas/UserStory" },
           {
             "type": "object",
             "properties": {
               "neighbors": {
                 "type": "object",
                 "properties": {
-                  "previous": {
-                    "$ref": "#/components/schemas/NeighborInfo"
-                  },
-                  "next": {
-                    "$ref": "#/components/schemas/NeighborInfo"
-                  }
+                  "previous": { "$ref": "#/components/schemas/NeighborInfo" },
+                  "next": { "$ref": "#/components/schemas/NeighborInfo" }
                 }
               }
             }
@@ -1252,230 +921,68 @@
       },
       "UserStoryCreateRequest": {
         "type": "object",
-        "required": [
-          "project",
-          "subject"
-        ],
+        "required": ["project", "subject"],
         "properties": {
-          "project": {
-            "type": "integer",
-            "example": 198
-          },
-          "subject": {
-            "type": "string",
-            "example": "Customer personal data 2"
-          },
-          "description": {
-            "type": "string",
-            "example": "ini untuk test input taiga via api"
-          },
-          "assigned_to": {
-            "type": "integer",
-            "example": 3266
-          },
+          "project": { "type": "integer", "example": 198 },
+          "subject": { "type": "string", "example": "Customer personal data 2" },
+          "description": { "type": "string", "example": "ini untuk test input taiga via api" },
+          "assigned_to": { "type": "integer", "example": 3266 },
           "tags": {
             "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "example": [
-              "service catalog",
-              "customer"
-            ]
+            "items": { "type": "string" },
+            "example": ["service catalog", "customer"]
           }
+        }
+      },
+      "UserStoryUpdateRequest": {
+        "type": "object",
+        "required": ["version"],
+        "properties": {
+          "subject": { "type": "string" },
+          "description": { "type": "string" },
+          "assigned_to": { "type": "integer" },
+          "status": { "type": "integer" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "is_closed": { "type": "boolean" },
+          "version": { "type": "integer", "description": "Versi saat ini (Wajib untuk OCC)" }
         }
       },
       "UserStoryExtraInfo": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "ref": {
-            "type": "integer"
-          },
-          "subject": {
-            "type": "string"
-          },
-          "epics": {
-            "nullable": true
-          }
+          "id": { "type": "integer" },
+          "ref": { "type": "integer" },
+          "subject": { "type": "string" }
         }
       },
       "Task": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "example": 742711
-          },
-          "ref": {
-            "type": "integer",
-            "example": 4874
-          },
-          "subject": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "description_html": {
-            "type": "string"
-          },
-          "due_date": {
-            "type": "string",
-            "format": "date",
-            "nullable": true
-          },
-          "due_date_reason": {
-            "type": "string"
-          },
-          "due_date_status": {
-            "type": "string"
-          },
-          "total_comments": {
-            "type": "integer"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TagWithColor"
-            }
-          },
-          "attachments": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "project": {
-            "type": "integer"
-          },
-          "project_extra_info": {
-            "$ref": "#/components/schemas/ProjectExtraInfo"
-          },
-          "status": {
-            "type": "integer"
-          },
-          "status_extra_info": {
-            "$ref": "#/components/schemas/StatusExtraInfo"
-          },
-          "assigned_to": {
-            "type": "integer",
-            "nullable": true
-          },
-          "assigned_to_extra_info": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserSummary"
-              }
-            ],
-            "nullable": true
-          },
-          "owner": {
-            "type": "integer"
-          },
-          "owner_extra_info": {
-            "$ref": "#/components/schemas/UserSummary"
-          },
-          "is_watcher": {
-            "type": "boolean"
-          },
-          "total_watchers": {
-            "type": "integer"
-          },
-          "is_voter": {
-            "type": "boolean"
-          },
-          "total_voters": {
-            "type": "integer"
-          },
-          "user_story": {
-            "type": "integer",
-            "description": "ID user story tempat task ini berada"
-          },
-          "user_story_extra_info": {
-            "$ref": "#/components/schemas/UserStoryExtraInfo"
-          },
-          "milestone": {
-            "type": "integer",
-            "nullable": true
-          },
-          "milestone_slug": {
-            "type": "string",
-            "nullable": true
-          },
-          "created_date": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "modified_date": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "finished_date": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "us_order": {
-            "type": "integer"
-          },
-          "taskboard_order": {
-            "type": "integer"
-          },
-          "is_iocaine": {
-            "type": "boolean"
-          },
-          "external_reference": {
-            "nullable": true
-          },
-          "version": {
-            "type": "integer"
-          },
-          "watchers": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "is_blocked": {
-            "type": "boolean"
-          },
-          "blocked_note": {
-            "type": "string"
-          },
-          "is_closed": {
-            "type": "boolean"
-          },
-          "comment": {
-            "type": "string"
-          },
-          "generated_user_stories": {
-            "nullable": true
-          },
-          "blocked_note_html": {
-            "type": "string"
-          }
+          "id": { "type": "integer", "example": 742711 },
+          "ref": { "type": "integer", "example": 4874 },
+          "subject": { "type": "string" },
+          "description": { "type": "string" },
+          "project": { "type": "integer" },
+          "status": { "type": "integer" },
+          "status_extra_info": { "$ref": "#/components/schemas/StatusExtraInfo" },
+          "assigned_to": { "type": "integer", "nullable": true },
+          "user_story": { "type": "integer", "description": "ID user story tempat task ini berada" },
+          "user_story_extra_info": { "$ref": "#/components/schemas/UserStoryExtraInfo" },
+          "version": { "type": "integer" },
+          "is_closed": { "type": "boolean" }
         }
       },
       "TaskDetail": {
         "allOf": [
-          {
-            "$ref": "#/components/schemas/Task"
-          },
+          { "$ref": "#/components/schemas/Task" },
           {
             "type": "object",
             "properties": {
               "neighbors": {
                 "type": "object",
                 "properties": {
-                  "previous": {
-                    "$ref": "#/components/schemas/NeighborInfo"
-                  },
-                  "next": {
-                    "$ref": "#/components/schemas/NeighborInfo"
-                  }
+                  "previous": { "$ref": "#/components/schemas/NeighborInfo" },
+                  "next": { "$ref": "#/components/schemas/NeighborInfo" }
                 }
               }
             }
@@ -1484,218 +991,74 @@
       },
       "TaskCreateRequest": {
         "type": "object",
-        "required": [
-          "subject",
-          "project",
-          "user_story"
-        ],
+        "required": ["subject", "project", "user_story"],
         "properties": {
-          "subject": {
-            "type": "string",
-            "example": "[QA] Create task di dalam user stories"
-          },
-          "description": {
-            "type": "string",
-            "example": "test create task"
-          },
-          "assigned_to": {
-            "type": "integer",
-            "example": 3266
-          },
-          "status": {
-            "type": "integer",
-            "example": 1091
-          },
-          "project": {
-            "type": "integer",
-            "example": 198
-          },
-          "user_story": {
-            "type": "integer",
-            "example": 762885
-          },
+          "subject": { "type": "string", "example": "[QA] Create task di dalam user stories" },
+          "description": { "type": "string", "example": "test create task" },
+          "assigned_to": { "type": "integer", "example": 3266 },
+          "status": { "type": "integer", "example": 1091 },
+          "project": { "type": "integer", "example": 198 },
+          "user_story": { "type": "integer", "example": 762885 },
           "tags": {
             "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "example": [
-              "test-qa",
-              "api"
-            ]
+            "items": { "type": "string" },
+            "example": ["test-qa", "api"]
           }
+        }
+      },
+      "TaskUpdateRequest": {
+        "type": "object",
+        "required": ["version"],
+        "properties": {
+          "subject": { "type": "string" },
+          "description": { "type": "string" },
+          "assigned_to": { "type": "integer" },
+          "status": { "type": "integer" },
+          "is_closed": { "type": "boolean" },
+          "version": { "type": "integer", "description": "Versi saat ini (Wajib untuk OCC)" }
         }
       },
       "Issue": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "example": 1906
-          },
-          "ref": {
-            "type": "integer",
-            "example": 4945
-          },
-          "subject": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "description_html": {
-            "type": "string"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TagWithColor"
-            }
-          },
-          "due_date": {
-            "type": "string",
-            "format": "date",
-            "nullable": true
-          },
-          "due_date_reason": {
-            "type": "string"
-          },
-          "due_date_status": {
-            "type": "string"
-          },
-          "attachments": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "project": {
-            "type": "integer"
-          },
-          "project_extra_info": {
-            "$ref": "#/components/schemas/ProjectExtraInfo"
-          },
-          "status": {
-            "type": "integer"
-          },
-          "status_extra_info": {
-            "$ref": "#/components/schemas/StatusExtraInfo"
-          },
-          "assigned_to": {
-            "type": "integer",
-            "nullable": true
-          },
-          "assigned_to_extra_info": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserSummary"
-              }
-            ],
-            "nullable": true
-          },
-          "owner": {
-            "type": "integer"
-          },
-          "owner_extra_info": {
-            "$ref": "#/components/schemas/UserSummary"
-          },
-          "is_watcher": {
-            "type": "boolean"
-          },
-          "total_watchers": {
-            "type": "integer"
-          },
-          "is_voter": {
-            "type": "boolean"
-          },
-          "total_voters": {
-            "type": "integer"
-          },
-          "severity": {
-            "type": "integer"
-          },
-          "priority": {
-            "type": "integer"
-          },
-          "type": {
-            "type": "integer"
-          },
-          "milestone": {
-            "type": "integer",
-            "nullable": true
-          },
-          "created_date": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "modified_date": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "finished_date": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "external_reference": {
-            "nullable": true
-          },
-          "version": {
-            "type": "integer"
-          },
-          "watchers": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "is_blocked": {
-            "type": "boolean"
-          },
-          "blocked_note": {
-            "type": "string"
-          },
-          "is_closed": {
-            "type": "boolean"
-          },
-          "comment": {
-            "type": "string"
-          },
-          "generated_user_stories": {
-            "nullable": true
-          },
-          "blocked_note_html": {
-            "type": "string"
-          }
+          "id": { "type": "integer", "example": 1906 },
+          "ref": { "type": "integer", "example": 4945 },
+          "subject": { "type": "string" },
+          "description": { "type": "string" },
+          "project": { "type": "integer" },
+          "status": { "type": "integer" },
+          "severity": { "type": "integer" },
+          "priority": { "type": "integer" },
+          "type": { "type": "integer" },
+          "assigned_to": { "type": "integer", "nullable": true },
+          "version": { "type": "integer" },
+          "is_closed": { "type": "boolean" }
         }
       },
       "IssueCreateRequest": {
         "type": "object",
-        "required": [
-          "subject",
-          "project"
-        ],
+        "required": ["subject", "project"],
         "properties": {
-          "subject": {
-            "type": "string",
-            "example": "test create issues"
-          },
-          "description": {
-            "type": "string",
-            "example": "test create issue"
-          },
-          "assigned_to": {
-            "type": "integer",
-            "example": 3266
-          },
-          "status": {
-            "type": "integer",
-            "example": 1091
-          },
-          "project": {
-            "type": "integer",
-            "example": 198
-          }
+          "subject": { "type": "string", "example": "test create issues" },
+          "description": { "type": "string", "example": "test create issue" },
+          "assigned_to": { "type": "integer", "example": 3266 },
+          "status": { "type": "integer", "example": 1091 },
+          "project": { "type": "integer", "example": 198 }
+        }
+      },
+      "IssueUpdateRequest": {
+        "type": "object",
+        "required": ["version"],
+        "properties": {
+          "subject": { "type": "string" },
+          "description": { "type": "string" },
+          "assigned_to": { "type": "integer" },
+          "status": { "type": "integer" },
+          "priority": { "type": "integer" },
+          "severity": { "type": "integer" },
+          "type": { "type": "integer" },
+          "is_closed": { "type": "boolean" },
+          "version": { "type": "integer", "description": "Versi saat ini (Wajib untuk OCC)" }
         }
       }
     }
