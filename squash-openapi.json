@@ -1,684 +1,2262 @@
 {
-  "openapi": "3.0.3",
-  "info": {
-    "title": "Squash TM REST API - Curated Subset with Corrected Endpoints",
-    "version": "4.1.0",
-    "description": "OpenAPI specification for Campaigns, Folders, Iterations, Projects, Test Cases, Steps, Test Suites, and Test Plan associations."
-  },
-  "servers": [
-    {
-      "url": "https://squash-dev.telkomdigital.id/squash/api/rest/latest"
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Squash TM Campaigns API",
+        "description": "API untuk mengelola campaigns pada Squash TM.\n",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "https://squash-dev.telkomdigital.id/api/rest/latest",
+            "description": "Development server"
+        }
+    ],
+    "security": [
+        {
+            "bearerAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Campaigns",
+            "description": "Operasi terkait campaign"
+        },
+        {
+            "name": "Iterations",
+            "description": "Operasi terkait iteration"
+        },
+        {
+            "name": "Projects",
+            "description": "Operasi terkait project"
+        },
+        {
+            "name": "Test Cases",
+            "description": "Operasi terkait test case"
+        },
+        {
+            "name": "Test Case Folders",
+            "description": "Operasi terkait folder test case"
+        }
+    ],
+    "paths": {
+        "/test-suites/{idTestSuite}/test-plan/{ids}": {
+            "post": {
+                "tags": [
+                    "Test Suites"
+                ],
+                "summary": "Lampirkan test plan ke test suite",
+                "description": "Melampirkan satu atau beberapa item test plan ke dalam test suite berdasarkan id.",
+                "operationId": "attachTestPlanToSuite",
+                "parameters": [
+                    {
+                        "name": "idTestSuite",
+                        "in": "path",
+                        "required": true,
+                        "description": "ID dari test suite",
+                        "schema": {
+                            "type": "integer",
+                            "example": 9
+                        }
+                    },
+                    {
+                        "name": "ids",
+                        "in": "path",
+                        "required": true,
+                        "description": "ID dari satu atau beberapa test plan item (dipisahkan koma jika lebih dari satu)",
+                        "schema": {
+                            "type": "string",
+                            "example": "41,80"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Test plan berhasil dilampirkan. Mengembalikan konten dari test suite.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestSuite"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/iterations/{id}/test-plan": {
+            "get": {
+                "tags": [
+                    "Iterations"
+                ],
+                "summary": "Ambil daftar test plan dari sebuah iteration",
+                "description": "Mengembalikan daftar test plan item yang berada di dalam iteration dengan id yang diberikan.",
+                "operationId": "getIterationTestPlans",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "ID dari iteration",
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "required": false,
+                        "description": "Jumlah item per halaman",
+                        "schema": {
+                            "type": "integer",
+                            "example": 2
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "description": "Nomor halaman",
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Daftar test plan berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestPlanPage"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/test-suites/{id}": {
+            "patch": {
+                "tags": [
+                    "Test Suites"
+                ],
+                "summary": "Perbarui test suite",
+                "description": "Memodifikasi test suite berdasarkan id yang diberikan. Anda dapat mengubah deskripsi, status, dan/atau custom fields.",
+                "operationId": "updateTestSuite",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "ID dari test suite",
+                        "schema": {
+                            "type": "integer",
+                            "example": 9
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TestSuitePatch"
+                            },
+                            "example": {
+                                "_type": "test-suite",
+                                "description": "<p>modified description sample test suite</p>",
+                                "status": "SUCCESS",
+                                "custom_fields": [
+                                    {
+                                        "code": "CF_TXT",
+                                        "label": "cuf text",
+                                        "value": "the_new_value"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Test suite berhasil diperbarui",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestSuite"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/test-suites": {
+            "post": {
+                "tags": [
+                    "Test Suites"
+                ],
+                "summary": "Buat test suite baru",
+                "description": "Membuat test suite baru. Dapat dibuat dengan atau tanpa menyertakan test plan.",
+                "operationId": "createTestSuite",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TestSuiteInput"
+                            },
+                            "example": {
+                                "_type": "test-suite",
+                                "name": "sample test suite",
+                                "description": "<p>this is a sample test suite</p>",
+                                "parent": {
+                                    "_type": "iteration",
+                                    "id": 101
+                                },
+                                "custom_fields": [
+                                    {
+                                        "code": "CF_TXT",
+                                        "label": "cuf text",
+                                        "value": "the_value"
+                                    }
+                                ],
+                                "test_plan": [
+                                    {
+                                        "_type": "iteration-test-plan-item",
+                                        "id": 80
+                                    },
+                                    {
+                                        "_type": "iteration-test-plan-item",
+                                        "id": 41
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Test suite berhasil dibuat",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestSuite"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                }
+            }
+        },
+        "/campaigns": {
+            "get": {
+                "tags": [
+                    "Campaigns"
+                ],
+                "summary": "Ambil daftar campaign",
+                "description": "Mengembalikan seluruh campaign yang boleh dibaca oleh user.",
+                "operationId": "getCampaigns",
+                "parameters": [
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Jumlah item per halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Nomor halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Daftar campaign berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CampaignPage"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Campaigns"
+                ],
+                "summary": "Buat campaign baru",
+                "description": "Membuat campaign baru.",
+                "operationId": "createCampaign",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CampaignInput"
+                            },
+                            "example": {
+                                "_type": "campaign",
+                                "name": "Campaign Test",
+                                "reference": "ABCD",
+                                "status": "PLANNED",
+                                "description": "<p>Sed eget rhoncus sapien. Nam et pulvinar nisi. su Do</p>",
+                                "scheduled_start_date": "2021-08-31T22:00:00.000+00:00",
+                                "scheduled_end_date": "2031-09-29T22:00:00.000+00:00",
+                                "actual_start_date": "2034-09-29T22:00:00.000+00:00",
+                                "actual_end_date": "2035-09-29T22:00:00.000+00:00",
+                                "actual_start_auto": false,
+                                "actual_end_auto": false,
+                                "custom_fields": [
+                                    {
+                                        "code": "CUF_A",
+                                        "label": "Cuf A",
+                                        "value": "value of A"
+                                    },
+                                    {
+                                        "code": "CUF_B",
+                                        "label": "Cuf B",
+                                        "value": "value of B"
+                                    }
+                                ],
+                                "parent": {
+                                    "_type": "campaign-folder",
+                                    "id": 104
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Campaign berhasil dibuat",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Campaign"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                }
+            }
+        },
+        "/campaigns/{id}": {
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "description": "ID campaign",
+                    "schema": {
+                        "type": "integer",
+                        "example": 112
+                    }
+                }
+            ],
+            "get": {
+                "tags": [
+                    "Campaigns"
+                ],
+                "summary": "Ambil detail campaign",
+                "description": "Mengembalikan campaign berdasarkan id yang diberikan.",
+                "operationId": "getCampaignById",
+                "responses": {
+                    "200": {
+                        "description": "Campaign ditemukan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Campaign"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            },
+            "patch": {
+                "tags": [
+                    "Campaigns"
+                ],
+                "summary": "Perbarui campaign",
+                "description": "Memodifikasi campaign berdasarkan id yang diberikan.",
+                "operationId": "updateCampaign",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CampaignPatch"
+                            },
+                            "example": {
+                                "_type": "campaign",
+                                "name": "Campaign Test",
+                                "reference": "ABCD",
+                                "status": "IN_PROGRESS",
+                                "description": "<p>Sed eget rhoncus sapien. Nam et pulvinar nisi. su Do</p>",
+                                "scheduled_start_date": "2021-08-31T22:00:00.000+00:00",
+                                "scheduled_end_date": "2031-09-29T22:00:00.000+00:00",
+                                "actual_start_date": "2034-09-29T22:00:00.000+00:00",
+                                "actual_end_date": "2035-09-29T22:00:00.000+00:00"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Campaign berhasil diperbarui",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Campaign"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/campaigns/{campaignId}/iterations": {
+            "parameters": [
+                {
+                    "name": "campaignId",
+                    "in": "path",
+                    "required": true,
+                    "description": "ID campaign induk",
+                    "schema": {
+                        "type": "integer",
+                        "example": 2
+                    }
+                }
+            ],
+            "post": {
+                "tags": [
+                    "Iterations"
+                ],
+                "summary": "Buat iteration baru",
+                "description": "Membuat iteration baru pada campaign yang diberikan.",
+                "operationId": "createIteration",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/IterationInput"
+                            },
+                            "example": {
+                                "_type": "iteration",
+                                "name": "new iteration",
+                                "reference": "NEW_IT",
+                                "description": "<p>A new iteration</p>",
+                                "parent": {
+                                    "_type": "campaign",
+                                    "id": 2
+                                },
+                                "scheduled_start_date": "2017-04-09T22:00:00.000+00:00",
+                                "scheduled_end_date": "2017-04-14T23:00:00.000+00:00",
+                                "actual_start_date": "2017-04-10T22:00:00.000+00:00",
+                                "actual_end_date": "2017-04-15T22:00:00.000+00:00",
+                                "actual_start_auto": false,
+                                "actual_end_auto": true,
+                                "custom_fields": [
+                                    {
+                                        "code": "CUF_A",
+                                        "label": "Cuf A",
+                                        "value": "value of A"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Iteration berhasil dibuat",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Iteration"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/iterations/{id}": {
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "description": "ID iteration",
+                    "schema": {
+                        "type": "integer",
+                        "example": 22
+                    }
+                }
+            ],
+            "get": {
+                "tags": [
+                    "Iterations"
+                ],
+                "summary": "Ambil detail iteration",
+                "description": "Mengembalikan iteration berdasarkan id yang diberikan.",
+                "operationId": "getIterationById",
+                "responses": {
+                    "200": {
+                        "description": "Iteration ditemukan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Iteration"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            },
+            "patch": {
+                "tags": [
+                    "Iterations"
+                ],
+                "summary": "Perbarui iteration",
+                "description": "Memodifikasi iteration berdasarkan id yang diberikan.",
+                "operationId": "updateIteration",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/IterationPatch"
+                            },
+                            "example": {
+                                "_type": "patched iteration",
+                                "name": "new iteration",
+                                "reference": "NEW_IT",
+                                "description": "<p>A new iteration</p>",
+                                "parent": {
+                                    "_type": "campaign",
+                                    "id": 2
+                                },
+                                "scheduled_start_date": "2017-04-09T22:00:00.000+00:00",
+                                "scheduled_end_date": "2017-04-14T23:00:00.000+00:00",
+                                "actual_start_date": "2017-04-10T22:00:00.000+00:00",
+                                "actual_end_date": "2017-04-15T22:00:00.000+00:00",
+                                "actual_start_auto": false,
+                                "actual_end_auto": true
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Iteration berhasil diperbarui",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Iteration"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/projects": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Ambil daftar project",
+                "description": "Mengembalikan seluruh project (standard maupun template) yang boleh dibaca oleh user. Gunakan parameter `type` untuk membatasi hasil hanya ke project standard atau template saja.\n",
+                "operationId": "getProjects",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Nomor halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Jumlah item per halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 4
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "Filter jenis project. `PROJECT` untuk project standard, `TEMPLATE` untuk project template. Jika tidak diisi, keduanya dikembalikan.\n",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "PROJECT",
+                                "TEMPLATE"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Daftar project berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectPage"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                }
+            }
+        },
+        "/projects/{id}": {
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "description": "ID project",
+                    "schema": {
+                        "type": "integer",
+                        "example": 367
+                    }
+                }
+            ],
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Ambil detail project",
+                "description": "Mengembalikan project berdasarkan id yang diberikan.",
+                "operationId": "getProjectById",
+                "responses": {
+                    "200": {
+                        "description": "Project ditemukan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Project"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/test-cases": {
+            "get": {
+                "tags": [
+                    "Test Cases"
+                ],
+                "summary": "Ambil daftar test case",
+                "description": "Mengembalikan seluruh test case yang boleh dibaca oleh user.",
+                "operationId": "getTestCases",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Nomor halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Jumlah item per halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2
+                        }
+                    },
+                    {
+                        "name": "fields",
+                        "in": "query",
+                        "description": "Daftar field yang ingin ditampilkan, dipisahkan koma.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "name,reference,script"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Daftar test case berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestCasePage"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Test Cases"
+                ],
+                "summary": "Buat test case baru",
+                "description": "Membuat test case baru. Wajib menyertakan properti `_type` dengan nilai `scripted-test-case` atau `keyword-test-case` untuk menentukan jenis test case yang dibuat.\n",
+                "operationId": "createTestCase",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TestCaseInput"
+                            },
+                            "examples": {
+                                "scripted-test-case": {
+                                    "summary": "Membuat scripted test case",
+                                    "value": {
+                                        "_type": "scripted-test-case",
+                                        "name": "Christmas turkey test flight",
+                                        "parent": {
+                                            "_type": "project",
+                                            "id": 15
+                                        },
+                                        "script": "this is Gherkin script"
+                                    }
+                                },
+                                "keyword-test-case": {
+                                    "summary": "Membuat keyword test case",
+                                    "value": {
+                                        "_type": "keyword-test-case",
+                                        "name": "Christmas turkey test flight",
+                                        "parent": {
+                                            "_type": "project",
+                                            "id": 15
+                                        },
+                                        "steps": []
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Test case berhasil dibuat",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestCase"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/test-cases/{id}": {
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "description": "ID test case",
+                    "schema": {
+                        "type": "integer",
+                        "example": 238
+                    }
+                }
+            ],
+            "get": {
+                "tags": [
+                    "Test Cases"
+                ],
+                "summary": "Ambil detail test case",
+                "description": "Mengembalikan test case berdasarkan id yang diberikan.",
+                "operationId": "getTestCaseById",
+                "responses": {
+                    "200": {
+                        "description": "Test case ditemukan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestCase"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            },
+            "patch": {
+                "tags": [
+                    "Test Cases"
+                ],
+                "summary": "Perbarui test case",
+                "description": "Memodifikasi test case berdasarkan id yang diberikan. Sertakan properti `_type` sesuai jenis test case (`scripted-test-case` atau `keyword-test-case`) yang sedang diubah.\n",
+                "operationId": "updateTestCase",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TestCasePatch"
+                            },
+                            "examples": {
+                                "scripted-test-case": {
+                                    "summary": "Mengubah scripted test case",
+                                    "value": {
+                                        "_type": "scripted-test-case",
+                                        "name": "Christmas turkey test launch",
+                                        "script": "this is Christmas Eve"
+                                    }
+                                },
+                                "keyword-test-case": {
+                                    "summary": "Mengubah keyword test case",
+                                    "value": {
+                                        "_type": "keyword-test-case",
+                                        "name": "Christmas turkey test launch"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Test case berhasil diperbarui",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestCase"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/test-case-folders": {
+            "get": {
+                "tags": [
+                    "Test Case Folders"
+                ],
+                "summary": "Ambil daftar test case folder",
+                "description": "Mengembalikan seluruh test case folder yang boleh dibaca oleh user.",
+                "operationId": "getTestCaseFolders",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Nomor halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Jumlah item per halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Daftar test case folder berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestCaseFolderPage"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Test Case Folders"
+                ],
+                "summary": "Buat test case folder baru",
+                "description": "Membuat test case folder baru. Field `name` dan `parent` wajib diisi; field lainnya bersifat opsional.\n",
+                "operationId": "createTestCaseFolder",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TestCaseFolderInput"
+                            },
+                            "example": {
+                                "_type": "test-case-folder",
+                                "name": "Test case folder 1",
+                                "description": "Description Test case folder 1",
+                                "custom_fields": [
+                                    {
+                                        "code": "cuf1",
+                                        "value": "Cuf1 Value"
+                                    }
+                                ],
+                                "parent": {
+                                    "_type": "project",
+                                    "id": 14
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Test case folder berhasil dibuat",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestCaseFolder"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/test-case-folders/tree/{ids}": {
+            "parameters": [
+                {
+                    "name": "ids",
+                    "in": "path",
+                    "required": true,
+                    "description": "Satu atau beberapa id project, dipisahkan koma, untuk mengambil struktur pohon (tree) test case folder pada project tersebut.\n",
+                    "schema": {
+                        "type": "string",
+                        "example": "10,11"
+                    }
+                }
+            ],
+            "get": {
+                "tags": [
+                    "Test Case Folders"
+                ],
+                "summary": "Ambil struktur pohon test case folder per project",
+                "description": "Mengembalikan test case folder dalam bentuk struktur pohon (tree), dikelompokkan berdasarkan project yang diberikan.\n",
+                "operationId": "getTestCaseFoldersTree",
+                "responses": {
+                    "200": {
+                        "description": "Struktur pohon test case folder berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TestCaseFolderTreeNode"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
+        "schemas": {
+            "TestPlanPage": {
+                "type": "object",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "page"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TestPlanItem"
+                        }
+                    },
+                    "_meta": {
+                        "$ref": "#/components/schemas/PageInfo"
+                    }
+                }
+            },
+            "TestPlanItem": {
+                "type": "object",
+                "description": "Struktur dari item test plan di dalam sebuah iteration",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "iteration-test-plan-item"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "example": 80
+                    }
+                }
+            },
+            "TestSuite": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/TestSuiteInput"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 9
+                            },
+                            "status": {
+                                "type": "string",
+                                "example": "SUCCESS"
+                            }
+                        }
+                    }
+                ]
+            },
+            "TestSuitePatch": {
+                "type": "object",
+                "required": [
+                    "_type"
+                ],
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "enum": [
+                            "test-suite"
+                        ],
+                        "example": "test-suite"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "<p>modified description sample test suite</p>"
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "SUCCESS"
+                    },
+                    "custom_fields": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CustomField"
+                        }
+                    }
+                }
+            },
+            "TestSuiteInput": {
+                "type": "object",
+                "required": [
+                    "_type",
+                    "name"
+                ],
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "enum": [
+                            "test-suite"
+                        ],
+                        "example": "test-suite"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "sample test suite"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "<p>this is a sample test suite</p>"
+                    },
+                    "parent": {
+                        "$ref": "#/components/schemas/TestSuiteParentRef"
+                    },
+                    "custom_fields": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CustomField"
+                        }
+                    },
+                    "test_plan": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TestPlanItemRef"
+                        }
+                    }
+                }
+            },
+            "TestPlanItemRef": {
+                "type": "object",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "iteration-test-plan-item"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "example": 80
+                    }
+                }
+            },
+            "TestSuiteParentRef": {
+                "type": "object",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "iteration"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "example": 101
+                    }
+                }
+            },
+            "CampaignStatus": {
+                "type": "string",
+                "enum": [
+                    "PLANNED",
+                    "IN_PROGRESS",
+                    "LOCKED",
+                    "DONE"
+                ]
+            },
+            "CustomField": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "example": "CUF_A"
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Cuf A"
+                    },
+                    "value": {
+                        "type": "string",
+                        "example": "value of A"
+                    }
+                }
+            },
+            "CampaignParentRef": {
+                "type": "object",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "campaign-folder"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "example": 104
+                    }
+                }
+            },
+            "CampaignInput": {
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "campaign"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Campaign Test"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "example": "ABCD"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/CampaignStatus"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "<p>Sed eget rhoncus sapien. Nam et pulvinar nisi. su Do</p>"
+                    },
+                    "scheduled_start_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2021-08-31T22:00:00.000+00:00"
+                    },
+                    "scheduled_end_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2031-09-29T22:00:00.000+00:00"
+                    },
+                    "actual_start_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2034-09-29T22:00:00.000+00:00"
+                    },
+                    "actual_end_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2035-09-29T22:00:00.000+00:00"
+                    },
+                    "actual_start_auto": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "actual_end_auto": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "custom_fields": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CustomField"
+                        }
+                    },
+                    "parent": {
+                        "$ref": "#/components/schemas/CampaignParentRef"
+                    }
+                }
+            },
+            "CampaignPatch": {
+                "type": "object",
+                "description": "Semua field bersifat opsional; hanya field yang dikirim yang akan diperbarui.",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "campaign"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Campaign Test"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "example": "ABCD"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/CampaignStatus"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "<p>Sed eget rhoncus sapien. Nam et pulvinar nisi. su Do</p>"
+                    },
+                    "scheduled_start_date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "scheduled_end_date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "actual_start_date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "actual_end_date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "actual_start_auto": {
+                        "type": "boolean"
+                    },
+                    "actual_end_auto": {
+                        "type": "boolean"
+                    },
+                    "custom_fields": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CustomField"
+                        }
+                    },
+                    "parent": {
+                        "$ref": "#/components/schemas/CampaignParentRef"
+                    }
+                }
+            },
+            "Campaign": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/CampaignInput"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 112
+                            },
+                            "_decorated-type": {
+                                "type": "string",
+                                "example": "campaign"
+                            },
+                            "created_on": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "created_by": {
+                                "type": "string"
+                            },
+                            "last_modified_on": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "last_modified_by": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ]
+            },
+            "PageInfo": {
+                "type": "object",
+                "properties": {
+                    "number": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "size": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "total_number_of_items": {
+                        "type": "integer",
+                        "example": 42
+                    },
+                    "total_number_of_pages": {
+                        "type": "integer",
+                        "example": 21
+                    }
+                }
+            },
+            "CampaignPage": {
+                "type": "object",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "page"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Campaign"
+                        }
+                    },
+                    "_meta": {
+                        "$ref": "#/components/schemas/PageInfo"
+                    }
+                }
+            },
+            "IterationParentRef": {
+                "type": "object",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "campaign"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "example": 2
+                    }
+                }
+            },
+            "IterationInput": {
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "iteration"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "new iteration"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "example": "NEW_IT"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "<p>A new iteration</p>"
+                    },
+                    "parent": {
+                        "$ref": "#/components/schemas/IterationParentRef"
+                    },
+                    "scheduled_start_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2017-04-09T22:00:00.000+00:00"
+                    },
+                    "scheduled_end_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2017-04-14T23:00:00.000+00:00"
+                    },
+                    "actual_start_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2017-04-10T22:00:00.000+00:00"
+                    },
+                    "actual_end_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2017-04-15T22:00:00.000+00:00"
+                    },
+                    "actual_start_auto": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "actual_end_auto": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "custom_fields": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CustomField"
+                        }
+                    }
+                }
+            },
+            "IterationPatch": {
+                "type": "object",
+                "description": "Semua field bersifat opsional; hanya field yang dikirim yang akan diperbarui.",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "patched iteration"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "new iteration"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "example": "NEW_IT"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "<p>A new iteration</p>"
+                    },
+                    "parent": {
+                        "$ref": "#/components/schemas/IterationParentRef"
+                    },
+                    "scheduled_start_date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "scheduled_end_date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "actual_start_date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "actual_end_date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "actual_start_auto": {
+                        "type": "boolean"
+                    },
+                    "actual_end_auto": {
+                        "type": "boolean"
+                    },
+                    "custom_fields": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CustomField"
+                        }
+                    }
+                }
+            },
+            "Iteration": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/IterationInput"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 22
+                            },
+                            "_decorated-type": {
+                                "type": "string",
+                                "example": "iteration"
+                            },
+                            "created_on": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "created_by": {
+                                "type": "string"
+                            },
+                            "last_modified_on": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "last_modified_by": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ]
+            },
+            "ProjectType": {
+                "type": "string",
+                "enum": [
+                    "PROJECT",
+                    "TEMPLATE"
+                ],
+                "description": "PROJECT untuk project standard, TEMPLATE untuk project template."
+            },
+            "Project": {
+                "type": "object",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "project"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "example": 367
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Project Test"
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Project Test Label"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "<p>Deskripsi project</p>"
+                    },
+                    "active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "project_type": {
+                        "$ref": "#/components/schemas/ProjectType"
+                    },
+                    "created_on": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "last_modified_on": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "last_modified_by": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ProjectPage": {
+                "type": "object",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "page"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Project"
+                        }
+                    },
+                    "_meta": {
+                        "$ref": "#/components/schemas/PageInfo"
+                    }
+                }
+            },
+            "TestCaseParentRef": {
+                "type": "object",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "project"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "example": 15
+                    }
+                }
+            },
+            "KeywordTestCaseStep": {
+                "type": "object",
+                "description": "Struktur satu baris step pada keyword test case.",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "keyword-test-step"
+                    },
+                    "keyword": {
+                        "type": "string",
+                        "example": "GIVEN"
+                    },
+                    "actionOrTestCase": {
+                        "type": "string",
+                        "example": "an initial state"
+                    },
+                    "expected_result": {
+                        "type": "string",
+                        "example": "the state is set"
+                    }
+                }
+            },
+            "ScriptedTestCaseInput": {
+                "type": "object",
+                "required": [
+                    "_type",
+                    "name"
+                ],
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "enum": [
+                            "scripted-test-case"
+                        ],
+                        "example": "scripted-test-case"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Christmas turkey test flight"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "example": "TC_REF"
+                    },
+                    "parent": {
+                        "$ref": "#/components/schemas/TestCaseParentRef"
+                    },
+                    "script": {
+                        "type": "string",
+                        "description": "Isi skrip test case, misalnya dalam format Gherkin.",
+                        "example": "this is Gherkin script"
+                    }
+                }
+            },
+            "KeywordTestCaseInput": {
+                "type": "object",
+                "required": [
+                    "_type",
+                    "name"
+                ],
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "enum": [
+                            "keyword-test-case"
+                        ],
+                        "example": "keyword-test-case"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Christmas turkey test flight"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "example": "TC_REF"
+                    },
+                    "parent": {
+                        "$ref": "#/components/schemas/TestCaseParentRef"
+                    },
+                    "steps": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/KeywordTestCaseStep"
+                        }
+                    }
+                }
+            },
+            "TestCaseInput": {
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/ScriptedTestCaseInput"
+                    },
+                    {
+                        "$ref": "#/components/schemas/KeywordTestCaseInput"
+                    }
+                ],
+                "discriminator": {
+                    "propertyName": "_type",
+                    "mapping": {
+                        "scripted-test-case": "#/components/schemas/ScriptedTestCaseInput",
+                        "keyword-test-case": "#/components/schemas/KeywordTestCaseInput"
+                    }
+                }
+            },
+            "ScriptedTestCasePatch": {
+                "type": "object",
+                "description": "Semua field opsional; hanya field yang dikirim yang akan diperbarui.",
+                "required": [
+                    "_type"
+                ],
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "enum": [
+                            "scripted-test-case"
+                        ],
+                        "example": "scripted-test-case"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Christmas turkey test launch"
+                    },
+                    "reference": {
+                        "type": "string"
+                    },
+                    "script": {
+                        "type": "string",
+                        "example": "this is Christmas Eve"
+                    }
+                }
+            },
+            "KeywordTestCasePatch": {
+                "type": "object",
+                "description": "Semua field opsional; hanya field yang dikirim yang akan diperbarui.",
+                "required": [
+                    "_type"
+                ],
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "enum": [
+                            "keyword-test-case"
+                        ],
+                        "example": "keyword-test-case"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Christmas turkey test launch"
+                    },
+                    "reference": {
+                        "type": "string"
+                    },
+                    "steps": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/KeywordTestCaseStep"
+                        }
+                    }
+                }
+            },
+            "TestCasePatch": {
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/ScriptedTestCasePatch"
+                    },
+                    {
+                        "$ref": "#/components/schemas/KeywordTestCasePatch"
+                    }
+                ],
+                "discriminator": {
+                    "propertyName": "_type",
+                    "mapping": {
+                        "scripted-test-case": "#/components/schemas/ScriptedTestCasePatch",
+                        "keyword-test-case": "#/components/schemas/KeywordTestCasePatch"
+                    }
+                }
+            },
+            "TestCaseCommon": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 238
+                    },
+                    "created_on": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "last_modified_on": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "last_modified_by": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ScriptedTestCase": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/ScriptedTestCaseInput"
+                    },
+                    {
+                        "$ref": "#/components/schemas/TestCaseCommon"
+                    }
+                ]
+            },
+            "KeywordTestCase": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/KeywordTestCaseInput"
+                    },
+                    {
+                        "$ref": "#/components/schemas/TestCaseCommon"
+                    }
+                ]
+            },
+            "TestCase": {
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/ScriptedTestCase"
+                    },
+                    {
+                        "$ref": "#/components/schemas/KeywordTestCase"
+                    }
+                ],
+                "discriminator": {
+                    "propertyName": "_type",
+                    "mapping": {
+                        "scripted-test-case": "#/components/schemas/ScriptedTestCase",
+                        "keyword-test-case": "#/components/schemas/KeywordTestCase"
+                    }
+                }
+            },
+            "TestCasePage": {
+                "type": "object",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "page"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TestCase"
+                        }
+                    },
+                    "_meta": {
+                        "$ref": "#/components/schemas/PageInfo"
+                    }
+                }
+            },
+            "TestCaseFolderParentRef": {
+                "type": "object",
+                "description": "Parent dapat berupa project (folder di root project) atau test-case-folder lain (sub-folder).\n",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "enum": [
+                            "project",
+                            "test-case-folder"
+                        ],
+                        "example": "project"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "example": 14
+                    }
+                }
+            },
+            "TestCaseFolderCustomField": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "example": "cuf1"
+                    },
+                    "value": {
+                        "type": "string",
+                        "example": "Cuf1 Value"
+                    }
+                }
+            },
+            "TestCaseFolderInput": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "parent"
+                ],
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "test-case-folder"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Test case folder 1"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Description Test case folder 1"
+                    },
+                    "custom_fields": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TestCaseFolderCustomField"
+                        }
+                    },
+                    "parent": {
+                        "$ref": "#/components/schemas/TestCaseFolderParentRef"
+                    }
+                }
+            },
+            "TestCaseFolder": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/TestCaseFolderInput"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 45
+                            },
+                            "created_on": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "created_by": {
+                                "type": "string"
+                            },
+                            "last_modified_on": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "last_modified_by": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ]
+            },
+            "TestCaseFolderPage": {
+                "type": "object",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "page"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TestCaseFolder"
+                        }
+                    },
+                    "_meta": {
+                        "$ref": "#/components/schemas/PageInfo"
+                    }
+                }
+            },
+            "TestCaseFolderTreeNode": {
+                "type": "object",
+                "description": "Node pada struktur pohon test case folder, dapat memiliki children berupa folder atau test case.",
+                "properties": {
+                    "_type": {
+                        "type": "string",
+                        "example": "test-case-folder"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "example": 45
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Test case folder 1"
+                    },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "children": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TestCaseFolderTreeNode"
+                        }
+                    }
+                }
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "integer",
+                        "example": 400
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Bad Request"
+                    }
+                }
+            }
+        },
+        "responses": {
+            "BadRequest": {
+                "description": "Request tidak valid",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "Unauthorized": {
+                "description": "Token tidak valid atau tidak ada",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "Forbidden": {
+                "description": "User tidak memiliki akses",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "NotFound": {
+                "description": "Resource tidak ditemukan",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            }
+        }
     }
-  ],
-  "components": {
-    "securitySchemes": {
-      "BasicAuth": {
-        "type": "http",
-        "scheme": "basic"
-      }
-    },
-    "schemas": {
-      "Project": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "description": { "type": "string" }
-        },
-        "example": {
-          "name": "Project Alpha",
-          "description": "Sample project for integration testing"
-        }
-      },
-      "Campaign": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "description": { "type": "string" },
-          "reference": { "type": "string" }
-        },
-        "example": {
-          "name": "Regression Cycle 1",
-          "description": "Monthly regression testing campaign",
-          "reference": "REG-01"
-        }
-      },
-      "CampaignFolder": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "parentId": { "type": "integer" }
-        },
-        "example": {
-          "name": "Sprint Folders",
-          "parentId": 12
-        }
-      },
-      "Iteration": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "description": { "type": "string" },
-          "reference": { "type": "string" },
-          "scheduledStartDate": { "type": "string", "format": "date" },
-          "scheduledEndDate": { "type": "string", "format": "date" }
-        },
-        "example": {
-          "name": "Iteration 1",
-          "description": "First test cycle iteration",
-          "reference": "IT-01",
-          "scheduledStartDate": "2026-06-01",
-          "scheduledEndDate": "2026-06-15"
-        }
-      },
-      "TestCase": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "reference": { "type": "string" },
-          "description": { "type": "string" },
-          "importance": { "type": "string" },
-          "status": { "type": "string" }
-        },
-        "example": {
-          "name": "Login with valid credentials",
-          "reference": "TC-LOGIN-01",
-          "description": "Verify user can login using correct username and password",
-          "importance": "HIGH",
-          "status": "APPROVED"
-        }
-      },
-      "TestCaseFolder": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "parentId": { "type": "integer" }
-        },
-        "example": {
-          "name": "Authentication Tests",
-          "parentId": 5
-        }
-      },
-      "TestStep": {
-        "type": "object",
-        "properties": {
-          "_type": { "type": "string", "example": "action-step" },
-          "action": { "type": "string" },
-          "expectedResult": { "type": "string" }
-        },
-        "example": {
-          "_type": "action-step",
-          "action": "Input username and password",
-          "expectedResult": "Dashboard page is shown"
-        }
-      },
-      "TestSuite": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "description": { "type": "string" }
-        },
-        "example": {
-          "name": "Smoke Test Suite",
-          "description": "Critical path test cases"
-        }
-      },
-      "IterationTestPlanItem": {
-        "type": "object",
-        "properties": {
-          "_type": { "type": "string", "example": "iteration-test-plan-item" },
-          "test_case_id": { "type": "integer" }
-        },
-        "example": {
-          "_type": "iteration-test-plan-item",
-          "test_case_id": 90
-        }
-      }
-    }
-  },
-  "security": [
-    {
-      "BasicAuth": []
-    }
-  ],
-  "paths": {
-    "/projects": {
-      "get": {
-        "summary": "Get all projects",
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "post": {
-        "summary": "Create project",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/Project" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Project created" }
-        }
-      }
-    },
-    "/projects/{id}": {
-      "get": {
-        "summary": "Get project by ID",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      }
-    },
-    "/projects/by-name/{name}": {
-      "get": {
-        "summary": "Get project by name",
-        "parameters": [
-          { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      }
-    },
-    "/campaigns": {
-      "get": {
-        "summary": "Get all campaigns",
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "post": {
-        "summary": "Create campaign",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/Campaign" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Campaign created" }
-        }
-      }
-    },
-    "/campaigns/{id}": {
-      "get": {
-        "summary": "Get campaign",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "patch": {
-        "summary": "Modify campaign",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/Campaign" }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Campaign modified" }
-        }
-      }
-    },
-    "/campaigns/by-name/{name}": {
-      "get": {
-        "summary": "Get campaigns by name",
-        "parameters": [
-          { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      }
-    },
-    "/campaigns/{id}/iterations": {
-      "get": {
-        "summary": "Get iterations of campaign",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "post": {
-        "summary": "Create iteration in campaign",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/Iteration" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Iteration created in campaign" }
-        }
-      }
-    },
-    "/campaign-folders": {
-      "get": {
-        "summary": "Get all campaign folders",
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "post": {
-        "summary": "Create campaign folder",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/CampaignFolder" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Campaign folder created" }
-        }
-      }
-    },
-    "/campaign-folders/{id}": {
-      "get": {
-        "summary": "Get campaign folder",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "patch": {
-        "summary": "Modify campaign folder",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/CampaignFolder" }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Campaign folder modified" }
-        }
-      }
-    },
-    "/campaign-folders/tree/{projectId}": {
-      "get": {
-        "summary": "Get campaign folders tree by project",
-        "parameters": [
-          { "name": "projectId", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      }
-    },
-    "/campaign-folders/{id}/content": {
-      "get": {
-        "summary": "Get campaign folder contents",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      }
-    },
-    "/iterations": {
-      "post": {
-        "summary": "Create iteration",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/Iteration" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Iteration created" }
-        }
-      }
-    },
-    "/iterations/{id}": {
-      "get": {
-        "summary": "Get iteration",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "patch": {
-        "summary": "Modify iteration",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/Iteration" }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Iteration modified" }
-        }
-      }
-    },
-    "/iterations/by-name/{name}": {
-      "get": {
-        "summary": "Get iteration by name",
-        "parameters": [
-          { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      }
-    },
-    "/iterations/{id}/test-suites": {
-      "get": {
-        "summary": "Get test suites of an iteration",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      }
-    },
-    "/iterations/{id}/test-plan": {
-      "post": {
-        "summary": "Add test case to iteration test plan",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/IterationTestPlanItem" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Test case added to iteration test plan" }
-        }
-      }
-    },
-    "/test-cases": {
-      "get": {
-        "summary": "Get all test cases",
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "post": {
-        "summary": "Create test case",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestCase" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Test case created" }
-        }
-      }
-    },
-    "/test-cases/{id}": {
-      "get": {
-        "summary": "Get test case",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "patch": {
-        "summary": "Modify test case",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestCase" }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Test case modified" }
-        }
-      }
-    },
-    "/test-cases/by-reference/{reference}": {
-      "get": {
-        "summary": "Get test case by reference",
-        "parameters": [
-          { "name": "reference", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      }
-    },
-    "/test-cases/{id}/steps": {
-      "get": {
-        "summary": "Get steps of test case",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "post": {
-        "summary": "Create test step",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestStep" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Test step created" }
-        }
-      }
-    },
-    "/test-case-folders": {
-      "get": {
-        "summary": "Get all test case folders",
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "post": {
-        "summary": "Create test case folder",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestCaseFolder" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Test case folder created" }
-        }
-      }
-    },
-    "/test-case-folders/{id}": {
-      "get": {
-        "summary": "Get test case folder",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      }
-    },
-    "/test-case-folders/{id}/content": {
-      "get": {
-        "summary": "Get test case folder contents",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      }
-    },
-    "/action-steps/{id}": {
-      "get": {
-        "summary": "Get action step",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "patch": {
-        "summary": "Modify action step",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestStep" }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Action step modified" }
-        }
-      }
-    },
-    "/call-steps/{id}": {
-      "get": {
-        "summary": "Get call step",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "patch": {
-        "summary": "Modify call step",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestStep" }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Call step modified" }
-        }
-      }
-    },
-    "/test-suites": {
-      "post": {
-        "summary": "Create test suite",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/TestSuite" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Test suite created" }
-        }
-      }
-    },
-    "/test-suites/{id}": {
-      "get": {
-        "summary": "Get test suite",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Successful operation" }
-        }
-      },
-      "patch": {
-        "summary": "Modify test suite",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Test suite modified" }
-        }
-      }
-    },
-    "/test-suites/{idTestSuite}/test-plan/{ids}": {
-      "post": {
-        "summary": "Attach item to test suite",
-        "description": "Attach one or several test plan item to a test suite with the given id(s).",
-        "parameters": [
-          {
-            "name": "idTestSuite",
-            "in": "path",
-            "required": true,
-            "description": "the id of the test suite",
-            "schema": { "type": "integer" }
-          },
-          {
-            "name": "ids",
-            "in": "path",
-            "required": true,
-            "description": "the id(s) of the test plan item, separated by comma if multiple",
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": { "description": "Successfully attached. Returns the modified test suite." }
-        }
-      }
-    },
-    "/iteration-test-plan-items": {
-      "post": {
-        "summary": "Create iteration test plan item (Add Test Cases to Iteration)",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/IterationTestPlanItem" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Iteration test plan item created" }
-        }
-      }
-    }
-  }
 }
