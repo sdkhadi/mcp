@@ -1179,10 +1179,10 @@
     },
     "components": {
         "securitySchemes": {
-            "bearerAuth": {
+            "basihAuth": {
                 "type": "http",
-                "scheme": "bearer",
-                "bearerFormat": "JWT"
+                "scheme": "basic",
+                "bearerFormat": "base64Encoded"
             }
         },
         "schemas": {
