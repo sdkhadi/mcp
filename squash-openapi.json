@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "https://squash-dev.telkomdigital.id/api/rest/latest",
+            "url": "https://squash-dev.telkomdigital.id/squash/api/rest/latest",
             "description": "Development server"
         }
     ],
