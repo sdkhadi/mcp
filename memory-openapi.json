@@ -2,12 +2,12 @@
   "openapi": "3.0.3",
   "info": {
     "title": "RAGFlow Memory Management API",
-    "description": "API OpenAPI Schema untuk pengelolaan Memory dan Message pada RAGFlow.",
+    "description": "API OpenAPI Schema untuk pengelolaan Memory dan Message pada RAGFlow v0.26.4.",
     "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "https://ai-knowledge.mytens.id/api/v1",
+      "url": "https://ai-knowledge.mytens.id",
       "description": "Production Server"
     }
   ],
@@ -17,7 +17,7 @@
     }
   ],
   "paths": {
-    "/memories": {
+    "/api/v1/memories": {
       "get": {
         "summary": "List Memory",
         "description": "Mengambil daftar memory yang tersedia beserta tipe, nama, dan tenant ID.",
@@ -86,25 +86,13 @@
         }
       }
     },
-    "/memories/{memory_id}/messages": {
+    "/api/v1/messages": {
       "post": {
         "summary": "Add Message",
         "description": "Menambahkan pesan baru ke dalam memory tertentu.",
         "operationId": "addMessage",
         "tags": [
           "Memory Management"
-        ],
-        "parameters": [
-          {
-            "name": "memory_id",
-            "in": "path",
-            "required": true,
-            "description": "ID unik dari memory.",
-            "schema": {
-              "type": "string"
-            },
-            "example": "d6775d4eeada11f08ca284ba59bc53c7"
-          }
         ],
         "requestBody": {
           "required": true,
@@ -114,6 +102,7 @@
                 "$ref": "#/components/schemas/AddMessageRequest"
               },
               "example": {
+                "memory_id": "d6775d4eeada11f08ca284ba59bc53c7",
                 "role": "user",
                 "content": "Pineapples are delicious fruits rich in vitamins.",
                 "message_type": "semantic"
@@ -155,40 +144,69 @@
         }
       }
     },
-    "/memories/{memory_id}/messages/search": {
-      "post": {
+    "/api/v1/messages/search": {
+      "get": {
         "summary": "Search Message",
-        "description": "Melakukan pencarian semantic atau keyword pada pesan di dalam memory.",
+        "description": "Melakukan pencarian pesan dalam memory berdasarkan query dan preferensi kesamaan (similarity threshold & keyword weight).",
         "operationId": "searchMessage",
         "tags": [
           "Memory Management"
         ],
         "parameters": [
           {
-            "name": "memory_id",
-            "in": "path",
+            "name": "query",
+            "in": "query",
             "required": true,
-            "description": "ID unik dari memory.",
+            "description": "Kata kunci atau teks pertanyaan untuk dicari.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "pineapples"
+          },
+          {
+            "name": "memory_id",
+            "in": "query",
+            "required": true,
+            "description": "ID unik memory target.",
             "schema": {
               "type": "string"
             },
             "example": "d6775d4eeada11f08ca284ba59bc53c7"
+          },
+          {
+            "name": "similarity_threshold",
+            "in": "query",
+            "required": false,
+            "description": "Ambang batas kemiripan Vektor/Semantic (0.0 - 1.0).",
+            "schema": {
+              "type": "number",
+              "default": 0.2
+            },
+            "example": 0.2
+          },
+          {
+            "name": "keywords_similarity_weight",
+            "in": "query",
+            "required": false,
+            "description": "Bobot pencarian kata kunci dibanding vektor.",
+            "schema": {
+              "type": "number",
+              "default": 0.7
+            },
+            "example": 0.7
+          },
+          {
+            "name": "top_n",
+            "in": "query",
+            "required": false,
+            "description": "Jumlah maksimal pesan hasil pencarian.",
+            "schema": {
+              "type": "integer",
+              "default": 6
+            },
+            "example": 5
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SearchMessageRequest"
-              },
-              "example": {
-                "query": "pineapples",
-                "top_k": 5
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Hasil pencarian pesan.",
@@ -218,55 +236,40 @@
         }
       }
     },
-    "/memories/{memory_id}/messages/{message_id}/forget": {
+    "/api/v1/messages/forget": {
       "post": {
         "summary": "Forget Message",
-        "description": "Tandai atau hapus pesan secara logis dari konteks ingatan memory.",
+        "description": "Tandai atau hapus daftar pesan berdasarkan list message_id.",
         "operationId": "forgetMessage",
         "tags": [
           "Memory Management"
         ],
-        "parameters": [
-          {
-            "name": "memory_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "d6775d4eeada11f08ca284ba59bc53c7"
-          },
-          {
-            "name": "message_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "example": 270
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgetMessageRequest"
+              },
+              "example": {
+                "memory_id": "d6775d4eeada11f08ca284ba59bc53c7",
+                "message_ids": [270]
+              }
+            }
           }
-        ],
+        },
         "responses": {
           "200": {
             "description": "Pesan berhasil ditandai/dihapus dari ingatan.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MessageDetailResponse"
+                  "$ref": "#/components/schemas/ForgetMessageResponse"
                 },
                 "example": {
                   "code": 0,
                   "message": "success",
-                  "data": {
-                    "id": "6c8983badede11f083f100163e000001",
-                    "agent_id": "8db9c8eddfcc11f083f100163e000001",
-                    "session_id": "bf0a50abeb811f083f100163e000001",
-                    "memory_id": "d6775d4eeada11f08ca284ba59bc53c7",
-                    "message_id": 270,
-                    "message_type": "semantic",
-                    "content": "Pineapples are delicious fruits rich in vitamins.",
-                    "forget_at": "2026-08-10T11:00:00Z"
-                  }
+                  "data": true
                 }
               }
             }
@@ -313,23 +316,19 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string",
-            "description": "ID unik memory."
+            "type": "string"
           },
           "name": {
-            "type": "string",
-            "description": "Nama dari memory."
+            "type": "string"
           },
           "tenant_id": {
-            "type": "string",
-            "description": "ID tenant/pemilik memory."
+            "type": "string"
           },
           "memory_type": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "Daftar tipe memory (contoh: raw, semantic, user, summary)."
+            }
           },
           "owner_name": {
             "type": "string",
@@ -362,9 +361,13 @@
       "AddMessageRequest": {
         "type": "object",
         "required": [
+          "memory_id",
           "content"
         ],
         "properties": {
+          "memory_id": {
+            "type": "string"
+          },
           "role": {
             "type": "string",
             "enum": [
@@ -387,18 +390,35 @@
           }
         }
       },
-      "SearchMessageRequest": {
+      "ForgetMessageRequest": {
         "type": "object",
         "required": [
-          "query"
+          "memory_id",
+          "message_ids"
         ],
         "properties": {
-          "query": {
+          "memory_id": {
             "type": "string"
           },
-          "top_k": {
-            "type": "integer",
-            "default": 5
+          "message_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "ForgetMessageResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "boolean"
           }
         }
       },
