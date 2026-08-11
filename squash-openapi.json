@@ -96,6 +96,74 @@
             }
         },
         "/iterations/{id}/test-plan": {
+  "post": {
+    "tags": [
+      "Iterations"
+    ],
+    "summary": "Tambahkan item test plan ke dalam iteration",
+    "description": "Menambahkan test case (dan opsional dataset serta asignee) ke dalam test plan suatu iteration.",
+    "operationId": "addTestPlanToIteration",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "ID dari iteration",
+        "schema": {
+          "type": "integer",
+          "example": 4
+        }
+      }
+    ],
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "$ref": "#/components/schemas/IterationTestPlanItemInput"
+          },
+          "example": {
+            "_type": "iteration-test-plan-item",
+            "test_case": {
+              "_type": "test-case",
+              "id": 25
+            },
+            "dataset": {
+              "_type": "dataset",
+              "id": 3
+            },
+            "assigned_to": "User-1"
+          }
+        }
+      }
+    },
+    "responses": {
+      "201": {
+        "description": "Item test plan berhasil ditambahkan",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/IterationTestPlanItem"
+            }
+          }
+        }
+      },
+      "400": {
+        "$ref": "#/components/responses/BadRequest"
+      },
+      "401": {
+        "$ref": "#/components/responses/Unauthorized"
+      },
+      "403": {
+        "$ref": "#/components/responses/Forbidden"
+      },
+      "404": {
+        "$ref": "#/components/responses/NotFound"
+      }
+    }
+  }
+},
+        "/iterations/{id}/test-plan": {
             "get": {
                 "tags": [
                     "Iterations"
@@ -1186,6 +1254,49 @@
             }
         },
         "schemas": {
+            "IterationTestPlanItemInput": {
+  "type": "object",
+  "required": [
+    "_type",
+    "test_case"
+  ],
+  "properties": {
+    "_type": {
+      "type": "string",
+      "example": "iteration-test-plan-item"
+    },
+    "test_case": {
+      "type": "object",
+      "properties": {
+        "_type": {
+          "type": "string",
+          "example": "test-case"
+        },
+        "id": {
+          "type": "integer",
+          "example": 25
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "properties": {
+        "_type": {
+          "type": "string",
+          "example": "dataset"
+        },
+        "id": {
+          "type": "integer",
+          "example": 3
+        }
+      }
+    },
+    "assigned_to": {
+      "type": "string",
+      "example": "User-1"
+    }
+  }
+},
             "TestPlanPage": {
                 "type": "object",
                 "properties": {
