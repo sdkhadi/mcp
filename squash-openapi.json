@@ -96,135 +96,123 @@
             }
         },
         "/iterations/{id}/test-plan": {
-  "post": {
-    "tags": [
-      "Iterations"
-    ],
-    "summary": "Tambahkan item test plan ke dalam iteration",
-    "description": "Menambahkan test case (dan opsional dataset serta asignee) ke dalam test plan suatu iteration.",
-    "operationId": "addTestPlanToIteration",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "description": "ID dari iteration",
-        "schema": {
-          "type": "integer",
-          "example": 4
-        }
-      }
-    ],
-    "requestBody": {
-      "required": true,
-      "content": {
-        "application/json": {
-          "schema": {
-            "$ref": "#/components/schemas/IterationTestPlanItemInput"
-          },
-          "example": {
-            "_type": "iteration-test-plan-item",
-            "test_case": {
-              "_type": "test-case",
-              "id": 25
-            },
-            "dataset": {
-              "_type": "dataset",
-              "id": 3
-            },
-            "assigned_to": "User-1"
-          }
-        }
-      }
-    },
-    "responses": {
-      "201": {
-        "description": "Item test plan berhasil ditambahkan",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/IterationTestPlanItem"
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "description": "ID dari iteration",
+              "schema": {
+                "type": "integer",
+                "example": 1
+              }
             }
-          }
-        }
-      },
-      "400": {
-        "$ref": "#/components/responses/BadRequest"
-      },
-      "401": {
-        "$ref": "#/components/responses/Unauthorized"
-      },
-      "403": {
-        "$ref": "#/components/responses/Forbidden"
-      },
-      "404": {
-        "$ref": "#/components/responses/NotFound"
-      }
-    }
-  }
-},
-        "/iterations/{id}/test-plan": {
-            "get": {
-                "tags": [
-                    "Iterations"
-                ],
-                "summary": "Ambil daftar test plan dari sebuah iteration",
-                "description": "Mengembalikan daftar test plan item yang berada di dalam iteration dengan id yang diberikan.",
-                "operationId": "getIterationTestPlans",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "description": "ID dari iteration",
-                        "schema": {
-                            "type": "integer",
-                            "example": 1
-                        }
-                    },
-                    {
-                        "name": "size",
-                        "in": "query",
-                        "required": false,
-                        "description": "Jumlah item per halaman",
-                        "schema": {
-                            "type": "integer",
-                            "example": 2
-                        }
-                    },
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "required": false,
-                        "description": "Nomor halaman",
-                        "schema": {
-                            "type": "integer",
-                            "example": 1
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Daftar test plan berhasil diambil",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TestPlanPage"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/Unauthorized"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/Forbidden"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    }
+          ],
+          "get": {
+            "tags": [
+              "Iterations"
+            ],
+            "summary": "Ambil daftar test plan dari sebuah iteration",
+            "description": "Mengembalikan daftar test plan item yang berada di dalam iteration dengan id yang diberikan.",
+            "operationId": "getIterationTestPlans",
+            "parameters": [
+              {
+                "name": "size",
+                "in": "query",
+                "required": false,
+                "description": "Jumlah item per halaman",
+                "schema": {
+                  "type": "integer",
+                  "example": 2
                 }
+              },
+              {
+                "name": "page",
+                "in": "query",
+                "required": false,
+                "description": "Nomor halaman",
+                "schema": {
+                  "type": "integer",
+                  "example": 1
+                }
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Daftar test plan berhasil diambil",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/TestPlanPage"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "$ref": "#/components/responses/Unauthorized"
+              },
+              "403": {
+                "$ref": "#/components/responses/Forbidden"
+              },
+              "404": {
+                "$ref": "#/components/responses/NotFound"
+              }
             }
+          },
+          "post": {
+            "tags": [
+              "Iterations"
+            ],
+            "summary": "Tambahkan item test plan ke dalam iteration",
+            "description": "Menambahkan test case (dan opsional dataset serta asignee) ke dalam test plan suatu iteration.",
+            "operationId": "addTestPlanToIteration",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/IterationTestPlanItemInput"
+                  },
+                  "example": {
+                    "_type": "iteration-test-plan-item",
+                    "test_case": {
+                      "_type": "test-case",
+                      "id": 25
+                    },
+                    "dataset": {
+                      "_type": "dataset",
+                      "id": 3
+                    },
+                    "assigned_to": "User-1"
+                  }
+                }
+              }
+            },
+            "responses": {
+              "201": {
+                "description": "Item test plan berhasil ditambahkan",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/IterationTestPlanItem"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "$ref": "#/components/responses/BadRequest"
+              },
+              "401": {
+                "$ref": "#/components/responses/Unauthorized"
+              },
+              "403": {
+                "$ref": "#/components/responses/Forbidden"
+              },
+              "404": {
+                "$ref": "#/components/responses/NotFound"
+              }
+            }
+          }
         },
         "/test-suites/{id}": {
             "patch": {
